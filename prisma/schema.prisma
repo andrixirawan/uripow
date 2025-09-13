@@ -1,0 +1,92 @@
+generator client {
+  provider = "prisma-client-js"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "mongodb"
+  url      = env("DATABASE_URL")
+}
+
+// Model untuk agen WhatsApp
+model Agent {
+  id          String   @id @default(auto()) @map("_id") @db.ObjectId
+  name        String
+  phoneNumber String   @unique
+  isActive    Boolean  @default(true)
+  weight      Int      @default(1)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relasi dengan groups melalui AgentGroup
+  agentGroups AgentGroup[]
+  // Relasi dengan clicks untuk analytics
+  clicks      Click[]
+
+  @@map("agents")
+}
+
+// Model untuk grup agen
+model Group {
+  id          String   @id @default(auto()) @map("_id") @db.ObjectId
+  name        String   @unique
+  slug        String   @unique
+  description String?
+  isActive    Boolean  @default(true)
+  strategy    String   @default("round-robin") // round-robin, random, weighted
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relasi dengan agents melalui AgentGroup
+  agentGroups AgentGroup[]
+  // Relasi dengan clicks untuk analytics
+  clicks      Click[]
+
+  @@map("groups")
+}
+
+// Model untuk relasi many-to-many antara Agent dan Group
+model AgentGroup {
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  agentId   String   @db.ObjectId
+  groupId   String   @db.ObjectId
+  weight    Int      @default(1)
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relasi dengan Agent dan Group
+  agent Agent @relation(fields: [agentId], references: [id], onDelete: Cascade)
+  group Group @relation(fields: [groupId], references: [id], onDelete: Cascade)
+
+  // Composite unique index untuk mencegah duplikasi
+  @@unique([agentId, groupId])
+  @@map("agent_groups")
+}
+
+// Model untuk log klik/analytics
+model Click {
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  agentId   String   @db.ObjectId
+  groupId   String?  @db.ObjectId // Optional, bisa null untuk backward compatibility
+  userAgent String?
+  ipAddress String?
+  referrer  String?
+  createdAt DateTime @default(now())
+
+  // Relasi dengan Agent dan Group
+  agent Agent  @relation(fields: [agentId], references: [id], onDelete: Cascade)
+  group Group? @relation(fields: [groupId], references: [id], onDelete: SetNull)
+
+  @@map("clicks")
+}
+
+// Model untuk pengaturan rotasi global
+model RotationSettings {
+  id       String @id @default(auto()) @map("_id") @db.ObjectId
+  strategy String @default("round-robin") // round-robin, random, weighted
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("rotation_settings")
+}
