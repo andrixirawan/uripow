@@ -1,78 +1,84 @@
 import { NextRequest, NextResponse } from "next/server";
-import { db } from "@/lib/db";
-import { z } from "zod";
+import { getUserAgents, createUserAgent } from "@/lib/db-utils";
+import { CreateAgentSchema } from "@/schemas";
+import { ApiResponseType } from "@/types";
 
-const CreateAgentSchema = z.object({
-  name: z.string().min(1, "Name is required"),
-  phoneNumber: z
-    .string()
-    .min(1, "Phone number is required")
-    .regex(/^\+\d+$/, "Phone number must start with + and contain only digits"),
-  weight: z.number().min(1).max(10).default(1),
-  isActive: z.boolean().default(true),
-});
-
-export async function GET(): Promise<NextResponse> {
+/**
+ * GET /api/agents - Mendapatkan semua agent milik user
+ */
+export async function GET(): Promise<NextResponse<ApiResponseType>> {
   try {
-    const agents = await db.agent.findMany({
-      include: {
-        _count: {
-          select: {
-            clicks: true,
-          },
-        },
-      },
-      orderBy: {
-        createdAt: "desc",
-      },
-    });
+    const agents = await getUserAgents();
 
-    return NextResponse.json(agents);
+    return NextResponse.json({
+      success: true,
+      data: agents,
+    });
   } catch (error) {
     console.error("Error fetching agents:", error);
     return NextResponse.json(
-      { error: "Failed to fetch agents" },
+      { success: false, error: "Failed to fetch agents" },
       { status: 500 }
     );
   }
 }
 
-export async function POST(request: NextRequest): Promise<NextResponse> {
+/**
+ * POST /api/agents - Membuat agent baru untuk user
+ */
+export async function POST(
+  request: NextRequest
+): Promise<NextResponse<ApiResponseType>> {
   try {
     const body = await request.json();
-    const validatedData = CreateAgentSchema.parse(body);
 
-    // Check if phone number already exists
-    const existingAgent = await db.agent.findUnique({
-      where: {
-        phoneNumber: validatedData.phoneNumber,
-      },
-    });
+    // Validasi input menggunakan Zod schema
+    const validationResult = CreateAgentSchema.safeParse(body);
 
-    if (existingAgent) {
+    if (!validationResult.success) {
+      const errors = validationResult.error.errors.map((err) => ({
+        field: err.path.join("."),
+        message: err.message,
+      }));
+
       return NextResponse.json(
-        { error: "Phone number already exists" },
+        {
+          success: false,
+          error: "Validation failed",
+          details: errors,
+        },
         { status: 400 }
       );
     }
 
-    const agent = await db.agent.create({
-      data: validatedData,
+    const { name, phoneNumber, weight } = validationResult.data;
+
+    const agent = await createUserAgent({
+      name,
+      phoneNumber,
+      weight,
     });
 
-    return NextResponse.json(agent, { status: 201 });
+    return NextResponse.json(
+      {
+        success: true,
+        data: agent,
+      },
+      { status: 201 }
+    );
   } catch (error) {
     console.error("Error creating agent:", error);
 
-    if (error instanceof z.ZodError) {
+    // Handle unique constraint error
+    if (error instanceof Error && error.message.includes("unique")) {
       return NextResponse.json(
-        { error: error.issues[0].message },
-        { status: 400 }
+        { success: false, error: "Nomor telepon sudah digunakan" },
+        { status: 409 }
       );
     }
 
     return NextResponse.json(
-      { error: "Failed to create agent" },
+      { success: false, error: "Failed to create agent" },
       { status: 500 }
     );
   }

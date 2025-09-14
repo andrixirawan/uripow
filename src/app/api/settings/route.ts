@@ -1,59 +1,64 @@
 import { NextRequest, NextResponse } from "next/server";
-import { db } from "@/lib/db";
+import {
+  getUserRotationSettings,
+  updateUserRotationSettings,
+} from "@/lib/db-utils";
 import { z } from "zod";
+import { ApiResponseType } from "@/types";
 
 const SettingsSchema = z.object({
   strategy: z.enum(["round-robin", "random", "weighted"]),
 });
 
-export async function GET(): Promise<NextResponse> {
+export async function GET(): Promise<NextResponse<ApiResponseType>> {
   try {
-    let settings = await db.rotationSettings.findFirst();
+    const settings = await getUserRotationSettings();
 
-    // If no settings exist, create default ones
-    if (!settings) {
-      settings = await db.rotationSettings.create({
-        data: {
-          strategy: "round-robin",
-        },
-      });
-    }
-
-    return NextResponse.json(settings);
+    return NextResponse.json({
+      success: true,
+      data: settings,
+    });
   } catch (error) {
     console.error("Error fetching settings:", error);
     return NextResponse.json(
-      { error: "Failed to fetch settings" },
+      { success: false, error: "Failed to fetch settings" },
       { status: 500 }
     );
   }
 }
 
-export async function POST(request: NextRequest): Promise<NextResponse> {
+export async function POST(
+  request: NextRequest
+): Promise<NextResponse<ApiResponseType>> {
   try {
     const body = await request.json();
     const validatedData = SettingsSchema.parse(body);
 
-    // Delete all existing settings and create new one
-    await db.rotationSettings.deleteMany({});
+    const settings = await updateUserRotationSettings(validatedData.strategy);
 
-    const settings = await db.rotationSettings.create({
-      data: validatedData,
+    return NextResponse.json({
+      success: true,
+      data: settings,
     });
-
-    return NextResponse.json(settings);
   } catch (error) {
     console.error("Error updating settings:", error);
 
     if (error instanceof z.ZodError) {
       return NextResponse.json(
-        { error: error.issues[0].message },
+        {
+          success: false,
+          error: "Validation failed",
+          details: error.issues.map((issue) => ({
+            field: issue.path.join("."),
+            message: issue.message,
+          })),
+        },
         { status: 400 }
       );
     }
 
     return NextResponse.json(
-      { error: "Failed to update settings" },
+      { success: false, error: "Failed to update settings" },
       { status: 500 }
     );
   }

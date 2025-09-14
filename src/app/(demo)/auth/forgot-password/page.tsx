@@ -119,7 +119,7 @@ export default function ForgotPasswordPage() {
 
       setCanResend(false);
       setCountdown(60);
-    } catch (err) {
+    } catch {
       setError("Failed to resend email");
     } finally {
       setIsSubmitting(false);
@@ -178,8 +178,8 @@ export default function ForgotPasswordPage() {
             </CardTitle>
             <CardDescription className="text-center text-base text-gray-600 pt-2">
               {success
-                ? "We've sent password reset instructions to your email"
-                : "Enter your email address and we'll send you reset instructions"}
+                ? "We&apos;ve sent password reset instructions to your email"
+                : "Enter your email address and we&apos;ll send you reset instructions"}
             </CardDescription>
           </CardHeader>
 
@@ -204,7 +204,7 @@ export default function ForgotPasswordPage() {
                     Email sent successfully!
                   </h3>
                   <p className="text-sm text-green-700 mb-4">
-                    We've sent password reset instructions to:
+                    We&apos;ve sent password reset instructions to:
                   </p>
                   <p className="text-sm font-mono bg-white/70 px-3 py-2 rounded-lg border border-green-200">
                     {email}
@@ -222,7 +222,9 @@ export default function ForgotPasswordPage() {
                         <ul className="text-xs text-blue-700 space-y-1">
                           <li>• Check your email inbox for our message</li>
                           <li>• Click the reset link within 15 minutes</li>
-                          <li>• Check your spam folder if you don't see it</li>
+                          <li>
+                            • Check your spam folder if you don&apos;t see it
+                          </li>
                         </ul>
                       </div>
                     </div>
@@ -332,7 +334,8 @@ export default function ForgotPasswordPage() {
                       </p>
                       <p className="text-xs text-gray-600">
                         Reset links expire after 15 minutes for your security.
-                        If you don't receive an email, check your spam folder.
+                        If you don&apos;t receive an email, check your spam
+                        folder.
                       </p>
                     </div>
                   </div>

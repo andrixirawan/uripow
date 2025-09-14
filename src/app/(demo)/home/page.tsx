@@ -1,5 +1,4 @@
 "use client";
-import { useEffect } from "react";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -18,9 +17,6 @@ import {
   Users,
   Star,
   CheckCircle2,
-  Rocket,
-  Globe,
-  Lock,
   Sparkles,
 } from "lucide-react";
 import Link from "next/link";
@@ -206,6 +202,7 @@ export default function HomePage() {
                     &quot;{testimonial.content}&quot;
                   </p>
                   <div className="flex items-center">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img
                       src={testimonial.avatar}
                       alt={testimonial.name}

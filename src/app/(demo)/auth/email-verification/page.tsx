@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, Suspense } from "react";
+import { useState, useEffect, useCallback, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
@@ -54,7 +54,7 @@ function EmailVerificationContent() {
     if (token && mounted) {
       verifyEmail(token);
     }
-  }, [token, mounted]);
+  }, [token, mounted, verifyEmail]);
 
   useEffect(() => {
     let timer: NodeJS.Timeout;
@@ -68,38 +68,41 @@ function EmailVerificationContent() {
     return () => clearTimeout(timer);
   }, [countdown, canResend, status]);
 
-  const verifyEmail = async (verificationToken: string) => {
-    setStatus("verifying");
-    setError("");
+  const verifyEmail = useCallback(
+    async (verificationToken: string) => {
+      setStatus("verifying");
+      setError("");
 
-    try {
-      // Demo verification logic - replace with actual API call
-      console.log("Verifying email with token:", verificationToken);
+      try {
+        // Demo verification logic - replace with actual API call
+        console.log("Verifying email with token:", verificationToken);
 
-      // Simulate API delay
-      await new Promise((resolve) => setTimeout(resolve, 2000));
+        // Simulate API delay
+        await new Promise((resolve) => setTimeout(resolve, 2000));
 
-      // Simulate different outcomes based on token
-      if (verificationToken === "expired") {
-        setStatus("expired");
-        setError("Verification link has expired. Please request a new one.");
-      } else if (verificationToken === "invalid") {
+        // Simulate different outcomes based on token
+        if (verificationToken === "expired") {
+          setStatus("expired");
+          setError("Verification link has expired. Please request a new one.");
+        } else if (verificationToken === "invalid") {
+          setStatus("error");
+          setError(
+            "Invalid verification link. Please check your email or request a new one."
+          );
+        } else {
+          setStatus("success");
+          // Auto-redirect after success
+          setTimeout(() => {
+            router.push("/auth/signin?verified=true");
+          }, 3000);
+        }
+      } catch (err) {
         setStatus("error");
-        setError(
-          "Invalid verification link. Please check your email or request a new one."
-        );
-      } else {
-        setStatus("success");
-        // Auto-redirect after success
-        setTimeout(() => {
-          router.push("/auth/signin?verified=true");
-        }, 3000);
+        setError(err instanceof Error ? err.message : "Failed to verify email");
       }
-    } catch (err) {
-      setStatus("error");
-      setError(err instanceof Error ? err.message : "Failed to verify email");
-    }
-  };
+    },
+    [router]
+  );
 
   const handleResendEmail = async () => {
     setIsResending(true);
@@ -113,7 +116,7 @@ function EmailVerificationContent() {
       setCanResend(false);
       setCountdown(60);
       setStatus("pending");
-    } catch (err) {
+    } catch {
       setError("Failed to resend verification email");
     } finally {
       setIsResending(false);
@@ -190,7 +193,7 @@ function EmailVerificationContent() {
   const getStatusDescription = () => {
     switch (status) {
       case "success":
-        return "Your email has been verified. You'll be redirected to sign in shortly.";
+        return "Your email has been verified. You&apos;ll be redirected to sign in shortly.";
       case "verifying":
         return "Please wait while we verify your email address...";
       case "error":
@@ -198,7 +201,7 @@ function EmailVerificationContent() {
       case "expired":
         return "Your verification link has expired. Please request a new one.";
       default:
-        return "We've sent a verification link to your email address. Please check your inbox.";
+        return "We&apos;ve sent a verification link to your email address. Please check your inbox.";
     }
   };
 
@@ -266,8 +269,8 @@ function EmailVerificationContent() {
                     </p>
                   </div>
                   <p className="text-xs text-blue-600">
-                    You'll be taken to the sign-in page in a few seconds, or
-                    click the button below to continue immediately.
+                    You&apos;ll be taken to the sign-in page in a few seconds,
+                    or click the button below to continue immediately.
                   </p>
                 </div>
 

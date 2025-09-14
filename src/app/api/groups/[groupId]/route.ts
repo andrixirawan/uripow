@@ -1,13 +1,31 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
+import { requireAuth } from "@/lib/auth-utils";
+import { ApiResponseType } from "@/types";
 
 export async function PUT(
   request: NextRequest,
   { params }: { params: Promise<{ groupId: string }> }
-) {
+): Promise<NextResponse<ApiResponseType>> {
   try {
+    const session = await requireAuth();
     const { name, description, strategy, isActive } = await request.json();
     const { groupId } = await params;
+
+    // Verify that the group belongs to the user
+    const existingGroup = await db.group.findFirst({
+      where: {
+        id: groupId,
+        userId: session.user.id,
+      },
+    });
+
+    if (!existingGroup) {
+      return NextResponse.json(
+        { success: false, error: "Group not found or access denied" },
+        { status: 404 }
+      );
+    }
 
     const updateData: {
       name?: string;
@@ -46,17 +64,20 @@ export async function PUT(
       },
     });
 
-    return NextResponse.json(group);
+    return NextResponse.json({
+      success: true,
+      data: group,
+    });
   } catch (error) {
     console.error("Error updating group:", error);
     if (error instanceof Error && error.message.includes("Unique constraint")) {
       return NextResponse.json(
-        { error: "Group name or slug already exists" },
+        { success: false, error: "Group name or slug already exists" },
         { status: 400 }
       );
     }
     return NextResponse.json(
-      { error: "Failed to update group" },
+      { success: false, error: "Failed to update group" },
       { status: 500 }
     );
   }
@@ -65,19 +86,38 @@ export async function PUT(
 export async function DELETE(
   request: NextRequest,
   { params }: { params: Promise<{ groupId: string }> }
-) {
+): Promise<NextResponse<ApiResponseType>> {
   try {
+    const session = await requireAuth();
     const { groupId } = await params;
+
+    // Verify that the group belongs to the user
+    const existingGroup = await db.group.findFirst({
+      where: {
+        id: groupId,
+        userId: session.user.id,
+      },
+    });
+
+    if (!existingGroup) {
+      return NextResponse.json(
+        { success: false, error: "Group not found or access denied" },
+        { status: 404 }
+      );
+    }
 
     await db.group.delete({
       where: { id: groupId },
     });
 
-    return NextResponse.json({ message: "Group deleted successfully" });
+    return NextResponse.json({
+      success: true,
+      data: { message: "Group deleted successfully" },
+    });
   } catch (error) {
     console.error("Error deleting group:", error);
     return NextResponse.json(
-      { error: "Failed to delete group" },
+      { success: false, error: "Failed to delete group" },
       { status: 500 }
     );
   }

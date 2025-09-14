@@ -66,7 +66,6 @@ export default function SignUpPage() {
   const [error, setError] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [mounted, setMounted] = useState(false);
-  const [currentStep, setCurrentStep] = useState(1);
 
   const router = useRouter();
 
@@ -541,7 +540,7 @@ export default function SignUpPage() {
                     htmlFor="newsletter"
                     className="text-sm text-gray-600 cursor-pointer leading-5"
                   >
-                    I'd like to receive product updates, tips, and special
+                    I&apos;d like to receive product updates, tips, and special
                     offers via email
                   </Label>
                 </div>

@@ -28,9 +28,6 @@ import {
   Phone,
   Key,
   HelpCircle,
-  Smartphone,
-  MessageCircle,
-  FileText,
   Lock,
   Sparkles,
 } from "lucide-react";
@@ -120,10 +117,6 @@ export default function AccountRecoveryPage() {
     setIsSubmitting(true);
 
     try {
-      const selectedMethodData = recoveryMethods.find(
-        (m) => m.id === selectedMethod
-      );
-
       // Validation based on method
       if (selectedMethod === "email" || selectedMethod === "phone") {
         if (!identifier.trim()) {
@@ -197,7 +190,7 @@ export default function AccountRecoveryPage() {
                 Choose Recovery Method
               </h3>
               <p className="text-sm text-gray-600">
-                Select how you'd like to recover access to your account
+                Select how you&apos;d like to recover access to your account
               </p>
             </div>
 
@@ -283,7 +276,7 @@ export default function AccountRecoveryPage() {
                   className="h-12"
                 />
                 <p className="text-xs text-gray-500">
-                  We'll send a recovery link to this email address
+                  We&apos;ll send a recovery link to this email address
                 </p>
               </div>
             )}
@@ -302,7 +295,7 @@ export default function AccountRecoveryPage() {
                   className="h-12"
                 />
                 <p className="text-xs text-gray-500">
-                  We'll send a verification code to this number
+                  We&apos;ll send a verification code to this number
                 </p>
               </div>
             )}
@@ -402,7 +395,7 @@ export default function AccountRecoveryPage() {
                 What happens next?
               </h4>
               <ul className="text-sm text-green-700 text-left space-y-1">
-                <li>• You'll receive further instructions shortly</li>
+                <li>• You&apos;ll receive further instructions shortly</li>
                 <li>• Follow the steps to regain access to your account</li>
                 <li>• Set up additional security measures if needed</li>
                 <li>• Contact support if you need additional help</li>
@@ -460,7 +453,8 @@ export default function AccountRecoveryPage() {
               Account Recovery
             </CardTitle>
             <CardDescription className="text-center text-base text-gray-600 pt-2">
-              Let's help you regain access to your account safely and securely
+              Let&apos;s help you regain access to your account safely and
+              securely
             </CardDescription>
 
             {/* Progress indicator */}

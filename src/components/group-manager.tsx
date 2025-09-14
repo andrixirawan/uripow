@@ -31,17 +31,8 @@ import {
   ExternalLink,
   Edit,
   UserCheck,
-  UserX,
 } from "lucide-react";
 import { toast } from "sonner";
-
-interface Agent {
-  id: string;
-  name: string;
-  phoneNumber: string;
-  weight: number;
-  isActive: boolean;
-}
 
 interface Group {
   id: string;
@@ -50,11 +41,19 @@ interface Group {
   description: string | null;
   isActive: boolean;
   strategy: string;
+  userId: string;
   createdAt: string;
   updatedAt: string;
-  agentCount: number;
-  clickCount: number;
-  agents: Agent[];
+  agentGroups?: {
+    agent: {
+      id: string;
+      name: string;
+      phoneNumber: string;
+    };
+  }[];
+  _count?: {
+    clicks: number;
+  };
 }
 
 interface AvailableAgent {
@@ -92,8 +91,12 @@ const GroupManager: React.FC = () => {
       setLoading(true);
       const response = await fetch("/api/groups");
       if (response.ok) {
-        const data = await response.json();
-        setGroups(data);
+        const responseData = await response.json();
+        if (responseData.success) {
+          setGroups(responseData.data);
+        } else {
+          toast.error(responseData.error || "Failed to fetch groups");
+        }
       } else {
         toast.error("Failed to fetch groups");
       }
@@ -107,10 +110,21 @@ const GroupManager: React.FC = () => {
 
   const createGroup = async (): Promise<void> => {
     try {
+      // Generate slug from name
+      const slug = formData.name
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, "-")
+        .replace(/^-+|-+$/g, "");
+
+      const requestData = {
+        ...formData,
+        slug,
+      };
+
       const response = await fetch("/api/groups", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(formData),
+        body: JSON.stringify(requestData),
       });
 
       if (response.ok) {
@@ -139,11 +153,16 @@ const GroupManager: React.FC = () => {
       });
 
       if (response.ok) {
-        toast.success("Group updated successfully");
-        setIsEditDialogOpen(false);
-        setSelectedGroup(null);
-        setFormData({ name: "", description: "", strategy: "round-robin" });
-        fetchGroups();
+        const responseData = await response.json();
+        if (responseData.success) {
+          toast.success("Group updated successfully");
+          setIsEditDialogOpen(false);
+          setSelectedGroup(null);
+          setFormData({ name: "", description: "", strategy: "round-robin" });
+          fetchGroups();
+        } else {
+          toast.error(responseData.error || "Failed to update group");
+        }
       } else {
         const error = await response.json();
         toast.error(error.error || "Failed to update group");
@@ -163,10 +182,16 @@ const GroupManager: React.FC = () => {
       });
 
       if (response.ok) {
-        toast.success("Group deleted successfully");
-        fetchGroups();
+        const responseData = await response.json();
+        if (responseData.success) {
+          toast.success("Group deleted successfully");
+          fetchGroups();
+        } else {
+          toast.error(responseData.error || "Failed to delete group");
+        }
       } else {
-        toast.error("Failed to delete group");
+        const error = await response.json();
+        toast.error(error.error || "Failed to delete group");
       }
     } catch (error) {
       console.error("Error deleting group:", error);
@@ -186,12 +211,18 @@ const GroupManager: React.FC = () => {
       });
 
       if (response.ok) {
-        toast.success(
-          `Group ${isActive ? "activated" : "deactivated"} successfully`
-        );
-        fetchGroups();
+        const responseData = await response.json();
+        if (responseData.success) {
+          toast.success(
+            `Group ${isActive ? "activated" : "deactivated"} successfully`
+          );
+          fetchGroups();
+        } else {
+          toast.error(responseData.error || "Failed to update group status");
+        }
       } else {
-        toast.error("Failed to update group status");
+        const error = await response.json();
+        toast.error(error.error || "Failed to update group status");
       }
     } catch (error) {
       console.error("Error updating group status:", error);
@@ -387,11 +418,15 @@ const GroupManager: React.FC = () => {
               <div className="grid grid-cols-2 gap-4 text-sm">
                 <div>
                   <span className="text-gray-500">Agents:</span>
-                  <span className="ml-1 font-semibold">{group.agentCount}</span>
+                  <span className="ml-1 font-semibold">
+                    {group.agentGroups?.length || 0}
+                  </span>
                 </div>
                 <div>
                   <span className="text-gray-500">Clicks:</span>
-                  <span className="ml-1 font-semibold">{group.clickCount}</span>
+                  <span className="ml-1 font-semibold">
+                    {group._count?.clicks || 0}
+                  </span>
                 </div>
               </div>
 
@@ -406,24 +441,24 @@ const GroupManager: React.FC = () => {
                 </Badge>
               </div>
 
-              {group.agents.length > 0 && (
+              {group.agentGroups && group.agentGroups.length > 0 && (
                 <div className="space-y-2">
                   <div className="text-xs text-gray-500 uppercase tracking-wide">
                     Agents
                   </div>
                   <div className="flex flex-wrap gap-1">
-                    {group.agents.slice(0, 3).map((agent) => (
+                    {group.agentGroups.slice(0, 3).map((agentGroup) => (
                       <Badge
-                        key={agent.id}
+                        key={agentGroup.agent.id}
                         variant="secondary"
                         className="text-xs"
                       >
-                        {agent.name}
+                        {agentGroup.agent.name}
                       </Badge>
                     ))}
-                    {group.agents.length > 3 && (
+                    {group.agentGroups.length > 3 && (
                       <Badge variant="secondary" className="text-xs">
-                        +{group.agents.length - 3} more
+                        +{group.agentGroups.length - 3} more
                       </Badge>
                     )}
                   </div>
@@ -584,36 +619,38 @@ const GroupManager: React.FC = () => {
             </TabsList>
 
             <TabsContent value="current" className="space-y-3">
-              {selectedGroup?.agents.length === 0 ? (
+              {!selectedGroup?.agentGroups ||
+              selectedGroup.agentGroups.length === 0 ? (
                 <p className="text-gray-600 text-center py-4">
                   No agents in this group yet
                 </p>
               ) : (
-                selectedGroup?.agents.map((agent) => (
+                selectedGroup.agentGroups.map((agentGroup) => (
                   <div
-                    key={agent.id}
+                    key={agentGroup.agent.id}
                     className="flex items-center justify-between p-3 border rounded-lg"
                   >
                     <div className="flex items-center space-x-3">
-                      {agent.isActive ? (
-                        <UserCheck className="h-4 w-4 text-green-600" />
-                      ) : (
-                        <UserX className="h-4 w-4 text-gray-400" />
-                      )}
+                      <UserCheck className="h-4 w-4 text-green-600" />
                       <div>
-                        <div className="font-medium">{agent.name}</div>
+                        <div className="font-medium">
+                          {agentGroup.agent.name}
+                        </div>
                         <div className="text-sm text-gray-600">
-                          {agent.phoneNumber}
+                          {agentGroup.agent.phoneNumber}
                         </div>
                       </div>
                     </div>
                     <div className="flex items-center gap-2">
-                      <Badge variant="outline">Weight: {agent.weight}</Badge>
+                      <Badge variant="outline">Weight: 1</Badge>
                       <Button
                         size="sm"
                         variant="outline"
                         onClick={() =>
-                          removeAgentFromGroup(selectedGroup.id, agent.id)
+                          removeAgentFromGroup(
+                            selectedGroup.id,
+                            agentGroup.agent.id
+                          )
                         }
                         className="text-red-600 hover:bg-red-50"
                       >

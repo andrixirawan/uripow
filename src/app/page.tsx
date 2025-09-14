@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import {
   Plus,
   Settings,
@@ -21,6 +22,7 @@ import { RotationSettings } from "@/components/rotation-settings";
 import GroupManager from "@/components/group-manager";
 import GroupAnalytics from "@/components/group-analytics";
 import { toast } from "sonner";
+import { useSession } from "@/lib/auth-client";
 
 interface Agent {
   id: string;
@@ -28,7 +30,16 @@ interface Agent {
   phoneNumber: string;
   isActive: boolean;
   weight: number;
+  userId: string;
   createdAt: string;
+  updatedAt: string;
+  agentGroups?: {
+    group: {
+      id: string;
+      name: string;
+      slug: string;
+    };
+  }[];
   _count?: {
     clicks: number;
   };
@@ -41,27 +52,53 @@ interface Group {
   description: string | null;
   isActive: boolean;
   strategy: string;
-  agentCount: number;
-  clickCount: number;
+  userId: string;
+  createdAt: string;
+  updatedAt: string;
+  agentGroups?: {
+    agent: {
+      id: string;
+      name: string;
+      phoneNumber: string;
+    };
+  }[];
+  _count?: {
+    clicks: number;
+  };
 }
 
-interface RotationStrategy {
+interface RotationSettings {
   id: string;
   strategy: string;
+  userId: string;
+  createdAt: string;
+  updatedAt: string;
 }
 
 export default function Page() {
+  const { data: session, isPending } = useSession();
+  const router = useRouter();
   const [agents, setAgents] = useState<Agent[]>([]);
   const [groups, setGroups] = useState<Group[]>([]);
   const [rotationSettings, setRotationSettings] =
-    useState<RotationStrategy | null>(null);
+    useState<RotationSettings | null>(null);
   const [loading, setLoading] = useState(true);
   const [rotatorUrl, setRotatorUrl] = useState("");
 
+  // Redirect jika user belum login
   useEffect(() => {
-    loadData();
-    setRotatorUrl(`${window.location.origin}/api/rotate`);
-  }, []);
+    if (!isPending && !session?.user) {
+      router.push("/sign-in");
+      return;
+    }
+  }, [session, isPending, router]);
+
+  useEffect(() => {
+    if (session?.user) {
+      loadData();
+      setRotatorUrl(`${window.location.origin}/api/rotate`);
+    }
+  }, [session]);
 
   const loadData = async (): Promise<void> => {
     try {
@@ -72,18 +109,24 @@ export default function Page() {
       ]);
 
       if (agentsRes.ok) {
-        const agentsData = await agentsRes.json();
-        setAgents(agentsData);
+        const agentsResponse = await agentsRes.json();
+        if (agentsResponse.success) {
+          setAgents(agentsResponse.data);
+        }
       }
 
       if (groupsRes.ok) {
-        const groupsData = await groupsRes.json();
-        setGroups(groupsData);
+        const groupsResponse = await groupsRes.json();
+        if (groupsResponse.success) {
+          setGroups(groupsResponse.data);
+        }
       }
 
       if (settingsRes.ok) {
-        const settingsData = await settingsRes.json();
-        setRotationSettings(settingsData);
+        const settingsResponse = await settingsRes.json();
+        if (settingsResponse.success) {
+          setRotationSettings(settingsResponse.data);
+        }
       }
     } catch (error) {
       console.error("Error loading data:", error);
@@ -109,11 +152,19 @@ export default function Page() {
     0
   );
   const totalGroupClicks = groups.reduce(
-    (sum, group) => sum + group.clickCount,
+    (sum, group) => sum + (group._count?.clicks || 0),
     0
   );
 
-  if (loading) {
+  // Calculate agent count per group
+  const groupsWithAgentCount = groups.map((group) => ({
+    ...group,
+    agentCount: group.agentGroups?.length || 0,
+    clickCount: group._count?.clicks || 0,
+  }));
+
+  // Show loading jika masih pending authentication atau loading data
+  if (isPending || loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-white">
         <div className="flex items-center space-x-2">
@@ -122,6 +173,11 @@ export default function Page() {
         </div>
       </div>
     );
+  }
+
+  // Show nothing jika user belum login (akan redirect)
+  if (!session?.user) {
+    return null;
   }
 
   return (
@@ -256,7 +312,7 @@ export default function Page() {
         </div>
 
         {/* Group Quick View */}
-        {groups.length > 0 && (
+        {groupsWithAgentCount.length > 0 && (
           <Card className="mb-8">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
@@ -266,30 +322,33 @@ export default function Page() {
             </CardHeader>
             <CardContent>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {activeGroups.slice(0, 6).map((group) => (
-                  <div
-                    key={group.id}
-                    className="flex items-center justify-between p-3 border rounded-lg bg-gray-50"
-                  >
-                    <div>
-                      <h4 className="font-medium text-black">{group.name}</h4>
-                      <p className="text-sm text-gray-600">
-                        {group.agentCount} agents • {group.clickCount} clicks
-                      </p>
-                    </div>
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={() =>
-                        copyToClipboard(
-                          `${window.location.origin}/api/rotate/${group.slug}`
-                        )
-                      }
+                {groupsWithAgentCount
+                  .filter((group) => group.isActive)
+                  .slice(0, 6)
+                  .map((group) => (
+                    <div
+                      key={group.id}
+                      className="flex items-center justify-between p-3 border rounded-lg bg-gray-50"
                     >
-                      <Copy className="h-3 w-3" />
-                    </Button>
-                  </div>
-                ))}
+                      <div>
+                        <h4 className="font-medium text-black">{group.name}</h4>
+                        <p className="text-sm text-gray-600">
+                          {group.agentCount} agents • {group.clickCount} clicks
+                        </p>
+                      </div>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() =>
+                          copyToClipboard(
+                            `${window.location.origin}/api/rotate/${group.slug}`
+                          )
+                        }
+                      >
+                        <Copy className="h-3 w-3" />
+                      </Button>
+                    </div>
+                  ))}
               </div>
             </CardContent>
           </Card>

@@ -21,7 +21,6 @@ import {
   Shield,
   Smartphone,
   Key,
-  Mail,
   Eye,
   EyeOff,
   Loader2,
@@ -31,16 +30,12 @@ import {
   Download,
   RefreshCw,
   Trash2,
-  Plus,
   Lock,
-  Globe,
   Monitor,
   Clock,
   MapPin,
-  Settings,
   User,
   Bell,
-  Fingerprint,
   QrCode,
 } from "lucide-react";
 
@@ -68,8 +63,6 @@ export default function ProfileSecurityPage() {
   // Security settings state
   const [twoFactorEnabled, setTwoFactorEnabled] = useState(true);
   const [loginAlerts, setLoginAlerts] = useState(true);
-  const [passwordlessEnabled, setPasswordlessEnabled] = useState(false);
-  const [sessionTimeout, setSessionTimeout] = useState(30);
 
   // Password change state
   const [currentPassword, setCurrentPassword] = useState("");
@@ -202,7 +195,7 @@ export default function ProfileSecurityPage() {
           setSuccess(`Passwordless login ${value ? "enabled" : "disabled"}`);
           break;
       }
-    } catch (err) {
+    } catch {
       setError("Failed to update security setting");
     }
   };
@@ -474,8 +467,8 @@ export default function ProfileSecurityPage() {
                     </Button>
                     <p className="text-xs text-gray-500 flex items-center">
                       <AlertTriangle className="h-3 w-3 mr-1" />
-                      Store these codes safely. You won't be able to see them
-                      again.
+                      Store these codes safely. You won&apos;t be able to see
+                      them again.
                     </p>
                   </div>
                 </CardContent>
