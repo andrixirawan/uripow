@@ -66,12 +66,24 @@ export function AgentManager({ agents, onUpdate }: AgentManagerProps) {
         : "/api/agents";
       const method = editingAgent ? "PUT" : "POST";
 
+      // Prepare data based on operation type
+      const requestData = editingAgent
+        ? formData // For update, send all fields
+        : {
+            name: formData.name,
+            phoneNumber: formData.phoneNumber,
+            weight: Number(formData.weight), // Ensure weight is a number
+            isActive: formData.isActive, // Include isActive field
+          }; // For create, send required fields including isActive
+
+      console.log("Sending request data:", requestData);
+
       const response = await fetch(url, {
         method,
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify(formData),
+        body: JSON.stringify(requestData),
       });
 
       if (response.ok) {

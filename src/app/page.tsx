@@ -11,6 +11,7 @@ import {
   RefreshCw,
   Users,
   Target,
+  UserCheck,
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -147,11 +148,8 @@ export default function Page() {
 
   const activeAgents = agents.filter((agent) => agent.isActive);
   const activeGroups = groups.filter((group) => group.isActive);
-  const totalClicks = agents.reduce(
-    (sum, agent) => sum + (agent._count?.clicks || 0),
-    0
-  );
-  const totalGroupClicks = groups.reduce(
+  // Calculate total clicks from groups only (to avoid duplication)
+  const totalClicks = groups.reduce(
     (sum, group) => sum + (group._count?.clicks || 0),
     0
   );
@@ -251,9 +249,7 @@ export default function Page() {
                   </p>
                 </div>
                 <div className="h-8 w-8 bg-black rounded-lg flex items-center justify-center">
-                  <span className="text-white text-sm font-bold">
-                    {agents.length}
-                  </span>
+                  <UserCheck className="h-4 w-4 text-white" />
                 </div>
               </div>
             </CardContent>
@@ -269,9 +265,7 @@ export default function Page() {
                   </p>
                 </div>
                 <div className="h-8 w-8 bg-green-500 rounded-lg flex items-center justify-center">
-                  <span className="text-white text-sm font-bold">
-                    {activeAgents.length}
-                  </span>
+                  <UserCheck className="h-4 w-4 text-white" />
                 </div>
               </div>
             </CardContent>
@@ -283,7 +277,7 @@ export default function Page() {
                 <div>
                   <p className="text-sm text-gray-600">Total Clicks</p>
                   <p className="text-2xl font-bold text-black">
-                    {(totalClicks + totalGroupClicks).toLocaleString()}
+                    {totalClicks.toLocaleString()}
                   </p>
                 </div>
                 <BarChart3 className="h-8 w-8 text-blue-500" />

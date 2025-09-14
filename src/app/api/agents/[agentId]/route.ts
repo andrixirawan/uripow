@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
+import { toggleAgentStatus } from "@/lib/db-utils";
 import { z } from "zod";
+import { ApiResponseType } from "@/types";
 
 const UpdateAgentSchema = z.object({
   name: z.string().min(1, "Name is required"),
@@ -61,10 +63,31 @@ export async function PUT(
   }
 }
 
+export async function PATCH(
+  request: NextRequest,
+  { params }: { params: Promise<{ agentId: string }> }
+): Promise<NextResponse<ApiResponseType>> {
+  try {
+    const { agentId } = await params;
+    const agent = await toggleAgentStatus(agentId);
+
+    return NextResponse.json({
+      success: true,
+      data: agent,
+    });
+  } catch (error) {
+    console.error("Error toggling agent status:", error);
+    return NextResponse.json(
+      { success: false, error: "Failed to toggle agent status" },
+      { status: 500 }
+    );
+  }
+}
+
 export async function DELETE(
   request: NextRequest,
   { params }: { params: Promise<{ agentId: string }> }
-): Promise<NextResponse> {
+): Promise<NextResponse<ApiResponseType>> {
   try {
     const { agentId } = await params;
 
@@ -74,7 +97,10 @@ export async function DELETE(
     });
 
     if (!agent) {
-      return NextResponse.json({ error: "Agent not found" }, { status: 404 });
+      return NextResponse.json(
+        { success: false, error: "Agent not found" },
+        { status: 404 }
+      );
     }
 
     // Delete agent (clicks will be cascade deleted)
@@ -82,11 +108,14 @@ export async function DELETE(
       where: { id: agentId },
     });
 
-    return NextResponse.json({ message: "Agent deleted successfully" });
+    return NextResponse.json({
+      success: true,
+      data: { message: "Agent deleted successfully" },
+    });
   } catch (error) {
     console.error("Error deleting agent:", error);
     return NextResponse.json(
-      { error: "Failed to delete agent" },
+      { success: false, error: "Failed to delete agent" },
       { status: 500 }
     );
   }

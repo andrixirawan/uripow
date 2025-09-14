@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { requireAuth } from "@/lib/auth-utils";
+import { toggleGroupStatus } from "@/lib/db-utils";
 import { ApiResponseType } from "@/types";
 
 export async function PUT(
@@ -78,6 +79,27 @@ export async function PUT(
     }
     return NextResponse.json(
       { success: false, error: "Failed to update group" },
+      { status: 500 }
+    );
+  }
+}
+
+export async function PATCH(
+  request: NextRequest,
+  { params }: { params: Promise<{ groupId: string }> }
+): Promise<NextResponse<ApiResponseType>> {
+  try {
+    const { groupId } = await params;
+    const group = await toggleGroupStatus(groupId);
+
+    return NextResponse.json({
+      success: true,
+      data: group,
+    });
+  } catch (error) {
+    console.error("Error toggling group status:", error);
+    return NextResponse.json(
+      { success: false, error: "Failed to toggle group status" },
       { status: 500 }
     );
   }

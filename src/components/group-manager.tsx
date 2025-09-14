@@ -74,6 +74,7 @@ const GroupManager: React.FC = () => {
     name: "",
     description: "",
     strategy: "round-robin",
+    isActive: true,
   });
 
   const strategies = [
@@ -119,6 +120,7 @@ const GroupManager: React.FC = () => {
       const requestData = {
         ...formData,
         slug,
+        isActive: formData.isActive,
       };
 
       const response = await fetch("/api/groups", {
@@ -130,7 +132,12 @@ const GroupManager: React.FC = () => {
       if (response.ok) {
         toast.success("Group created successfully");
         setIsCreateDialogOpen(false);
-        setFormData({ name: "", description: "", strategy: "round-robin" });
+        setFormData({
+          name: "",
+          description: "",
+          strategy: "round-robin",
+          isActive: true,
+        });
         fetchGroups();
       } else {
         const error = await response.json();
@@ -158,7 +165,12 @@ const GroupManager: React.FC = () => {
           toast.success("Group updated successfully");
           setIsEditDialogOpen(false);
           setSelectedGroup(null);
-          setFormData({ name: "", description: "", strategy: "round-robin" });
+          setFormData({
+            name: "",
+            description: "",
+            strategy: "round-robin",
+            isActive: true,
+          });
           fetchGroups();
         } else {
           toast.error(responseData.error || "Failed to update group");
@@ -302,6 +314,7 @@ const GroupManager: React.FC = () => {
       name: group.name,
       description: group.description || "",
       strategy: group.strategy,
+      isActive: group.isActive,
     });
     setIsEditDialogOpen(true);
   };

@@ -34,8 +34,8 @@ async function getNextAgentFromGroup(groupSlug: string): Promise<{
   agent: AgentGroupWithAgent["agent"] | null;
 }> {
   try {
-    // Find the group by slug
-    const group = await db.group.findUnique({
+    // Find the group by slug using findFirst since we don't have userId
+    const group = await db.group.findFirst({
       where: {
         slug: groupSlug,
         isActive: true,
@@ -136,6 +136,7 @@ export async function GET(
 ) {
   try {
     const { groupSlug } = await params;
+
     const { phoneNumber, group, agent } = await getNextAgentFromGroup(
       groupSlug
     );
@@ -156,15 +157,29 @@ export async function GET(
       forwarded?.split(",")[0] || request.headers.get("x-real-ip") || "";
     const referrer = request.headers.get("referer") || "";
 
-    await db.click.create({
-      data: {
-        agentId: agent.id,
-        groupId: group.id,
-        userAgent,
+    // Check for recent clicks from same IP to prevent duplicates
+    const recentClick = await db.click.findFirst({
+      where: {
         ipAddress,
-        referrer,
+        groupId: group.id,
+        createdAt: {
+          gte: new Date(Date.now() - 5000), // 5 seconds ago
+        },
       },
     });
+
+    // Only create click if no recent click from same IP
+    if (!recentClick) {
+      await db.click.create({
+        data: {
+          agentId: agent.id,
+          groupId: group.id,
+          userAgent,
+          ipAddress,
+          referrer,
+        },
+      });
+    }
 
     // Redirect to WhatsApp
     const whatsappUrl = `https://wa.me/${phoneNumber.replace(/[^0-9]/g, "")}`;

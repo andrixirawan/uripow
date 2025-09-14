@@ -53,6 +53,7 @@ export const CreateAgentSchema = z.object({
     .max(15, "Nomor telepon maksimal 15 digit")
     .regex(/^\+?[1-9]\d{1,14}$/, "Format nomor telepon tidak valid"),
   weight: z.number().int().min(1).max(100).default(1),
+  isActive: z.boolean().default(true),
 });
 
 export const UpdateAgentSchema = z.object({
@@ -103,6 +104,7 @@ export const CreateGroupSchema = z.object({
   strategy: z
     .enum(["round-robin", "random", "weighted"])
     .default("round-robin"),
+  isActive: z.boolean().default(true),
 });
 
 export const UpdateGroupSchema = z.object({

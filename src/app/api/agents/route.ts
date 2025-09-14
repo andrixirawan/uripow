@@ -36,10 +36,13 @@ export async function POST(
     const validationResult = CreateAgentSchema.safeParse(body);
 
     if (!validationResult.success) {
-      const errors = validationResult.error.errors.map((err) => ({
+      const errors = validationResult.error.issues.map((err) => ({
         field: err.path.join("."),
         message: err.message,
       }));
+
+      console.log("Validation errors:", errors);
+      console.log("Request body:", body);
 
       return NextResponse.json(
         {

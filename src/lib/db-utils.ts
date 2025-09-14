@@ -21,7 +21,7 @@ export async function getUserAgents(): Promise<AgentWithRelationsType[]> {
   return await db.agent.findMany({
     where: {
       userId: session.user.id,
-      isActive: true,
+      // Remove isActive filter to get all agents (active and inactive)
     },
     include: {
       agentGroups: {
@@ -50,7 +50,7 @@ export async function getUserGroups(): Promise<GroupWithRelationsType[]> {
   return await db.group.findMany({
     where: {
       userId: session.user.id,
-      isActive: true,
+      // Remove isActive filter to get all groups (active and inactive)
     },
     include: {
       agentGroups: {
@@ -221,5 +221,53 @@ export async function updateUserRotationSettings(strategy: string) {
       userId: session.user.id,
       strategy,
     },
+  });
+}
+
+/**
+ * Toggle agent status (active/inactive) untuk user yang sedang login
+ */
+export async function toggleAgentStatus(agentId: string) {
+  const session = await requireAuth();
+
+  // Verify that the agent belongs to the user
+  const agent = await db.agent.findFirst({
+    where: {
+      id: agentId,
+      userId: session.user.id,
+    },
+  });
+
+  if (!agent) {
+    throw new Error("Agent not found or access denied");
+  }
+
+  return await db.agent.update({
+    where: { id: agentId },
+    data: { isActive: !agent.isActive },
+  });
+}
+
+/**
+ * Toggle group status (active/inactive) untuk user yang sedang login
+ */
+export async function toggleGroupStatus(groupId: string) {
+  const session = await requireAuth();
+
+  // Verify that the group belongs to the user
+  const group = await db.group.findFirst({
+    where: {
+      id: groupId,
+      userId: session.user.id,
+    },
+  });
+
+  if (!group) {
+    throw new Error("Group not found or access denied");
+  }
+
+  return await db.group.update({
+    where: { id: groupId },
+    data: { isActive: !group.isActive },
   });
 }
