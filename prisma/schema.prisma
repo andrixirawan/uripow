@@ -1,3 +1,4 @@
+
 generator client {
   provider = "prisma-client-js"
   output   = "../src/generated/prisma"
@@ -8,7 +9,68 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+model User {
+  id            String    @id @map("_id")
+  name          String
+  email         String
+  emailVerified Boolean   @default(false)
+  image         String?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @default(now()) @updatedAt
+  sessions      Session[]
+  accounts      Account[]
+
+  @@unique([email])
+  @@map("user")
+}
+
+model Session {
+  id        String   @id @map("_id")
+  expiresAt DateTime
+  token     String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  ipAddress String?
+  userAgent String?
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([token])
+  @@map("session")
+}
+
+model Account {
+  id                    String    @id @map("_id")
+  accountId             String
+  providerId            String
+  userId                String
+  user                  User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  accessToken           String?
+  refreshToken          String?
+  idToken               String?
+  accessTokenExpiresAt  DateTime?
+  refreshTokenExpiresAt DateTime?
+  scope                 String?
+  password              String?
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+
+  @@map("account")
+}
+
+model Verification {
+  id         String   @id @map("_id")
+  identifier String
+  value      String
+  expiresAt  DateTime
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @default(now()) @updatedAt
+
+  @@map("verification")
+}
+
 // Model untuk agen WhatsApp
+
 model Agent {
   id          String   @id @default(auto()) @map("_id") @db.ObjectId
   name        String
@@ -27,6 +89,7 @@ model Agent {
 }
 
 // Model untuk grup agen
+
 model Group {
   id          String   @id @default(auto()) @map("_id") @db.ObjectId
   name        String   @unique
@@ -46,6 +109,7 @@ model Group {
 }
 
 // Model untuk relasi many-to-many antara Agent dan Group
+
 model AgentGroup {
   id        String   @id @default(auto()) @map("_id") @db.ObjectId
   agentId   String   @db.ObjectId
@@ -65,6 +129,7 @@ model AgentGroup {
 }
 
 // Model untuk log klik/analytics
+
 model Click {
   id        String   @id @default(auto()) @map("_id") @db.ObjectId
   agentId   String   @db.ObjectId
@@ -82,11 +147,14 @@ model Click {
 }
 
 // Model untuk pengaturan rotasi global
+
 model RotationSettings {
-  id       String @id @default(auto()) @map("_id") @db.ObjectId
-  strategy String @default("round-robin") // round-robin, random, weighted
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  strategy  String   @default("round-robin") // round-robin, random, weighted
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
   @@map("rotation_settings")
 }
+
+

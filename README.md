@@ -6,9 +6,10 @@ Aplikasi WhatsApp Rotator untuk distribusi kontak yang cerdas dengan sistem grup
 
 ## Prerequisites
 
-- Node.js 18+
-- pnpm
-- MongoDB
+- Framework: Next.js
+- Database: MongoDB
+- ORM: Prisma
+- Auth: Better Auth
 
 ## Installation
 
