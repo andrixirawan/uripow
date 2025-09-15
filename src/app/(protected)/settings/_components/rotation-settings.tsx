@@ -62,7 +62,6 @@ export function RotationSettings() {
       if (settingsRes.ok) {
         const settingsResponse = await settingsRes.json();
         if (settingsResponse.success) {
-          setSettings(settingsResponse.data);
           setSelectedStrategy(settingsResponse.data.strategy);
         }
       }
@@ -96,7 +95,6 @@ export function RotationSettings() {
 
       if (result.success) {
         toast.success("Settings saved successfully!");
-        setSettings(result.data);
       } else {
         toast.error(result.error || "Failed to save settings");
       }
