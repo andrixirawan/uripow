@@ -1,4 +1,4 @@
-import { apiClient, ApiResponse } from "./axios";
+import { apiClient, ApiResponse } from "../../lib/axios";
 import {
   AgentType,
   GroupType,

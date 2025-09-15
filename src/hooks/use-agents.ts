@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { api } from "@/lib/api-client";
+import { api } from "@/modules/auth/api-client";
 import { AgentType, CreateAgentType, UpdateAgentType } from "@/types";
 
 /**

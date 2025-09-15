@@ -1,5 +1,5 @@
 import { db } from "./db";
-import { requireAuth } from "./auth-utils";
+import { requireAuth } from "../modules/auth/require-auth";
 import {
   CreateAgentType,
   CreateGroupType,

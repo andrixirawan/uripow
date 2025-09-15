@@ -23,7 +23,7 @@ import { RotationSettings } from "@/components/rotation-settings";
 import GroupManager from "@/components/group-manager";
 import GroupAnalytics from "@/components/group-analytics";
 import { toast } from "sonner";
-import { useSession } from "@/lib/auth-client";
+import { useSession } from "@/modules/auth/auth-client";
 
 interface Agent {
   id: string;

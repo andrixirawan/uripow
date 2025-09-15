@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
-import { requireAuth } from "@/lib/auth-utils";
+import { requireAuth } from "@/modules/auth/require-auth";
 import { toggleGroupStatus } from "@/lib/db-utils";
 import { ApiResponseType } from "@/types";
 

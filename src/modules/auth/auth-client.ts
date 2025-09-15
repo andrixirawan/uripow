@@ -1,5 +1,5 @@
 import { createAuthClient } from "better-auth/react";
-import { config } from "./env";
+import { config } from "../../lib/env";
 
 export const authClient = createAuthClient({
   baseURL: config.next.appUrl,
