@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Select,
@@ -25,23 +25,7 @@ import {
   Line,
 } from "recharts";
 import { TrendingUp, Users, MousePointerClick, Activity } from "lucide-react";
-
-interface GroupAnalytics {
-  totalClicks: number;
-  hourlyData: { hour: number; clicks: number }[];
-  dailyData: { date: string; clicks: number }[];
-  agentDistribution: { name: string; clicks: number }[];
-  groupDistribution: { name: string; clicks: number }[];
-  groupStats: {
-    id: string;
-    name: string;
-    slug: string;
-    isActive: boolean;
-    strategy: string;
-    clickCount: number;
-    agentCount: number;
-  }[];
-}
+import { useGroupAnalytics } from "./use-group-analytics";
 
 const COLORS = [
   "#000000",
@@ -54,31 +38,18 @@ const COLORS = [
 ];
 
 export function GroupAnalytics() {
-  const [analytics, setAnalytics] = useState<GroupAnalytics | null>(null);
   const [selectedGroup, setSelectedGroup] = useState<string>("all");
   const [selectedDays, setSelectedDays] = useState<string>("7");
-  const [loading, setLoading] = useState<boolean>(true);
 
-  const loadAnalytics = useCallback(async (): Promise<void> => {
-    try {
-      setLoading(true);
-      const response = await fetch(
-        `/api/analytics/groups?days=${selectedDays}&group=${selectedGroup}`
-      );
-      if (response.ok) {
-        const data = await response.json();
-        setAnalytics(data);
-      }
-    } catch (error) {
-      console.error("Error loading group analytics:", error);
-    } finally {
-      setLoading(false);
-    }
-  }, [selectedDays, selectedGroup]);
-
-  useEffect(() => {
-    loadAnalytics();
-  }, [loadAnalytics]);
+  // React Query hook
+  const {
+    data: analytics,
+    isLoading: loading,
+    error,
+  } = useGroupAnalytics({
+    days: parseInt(selectedDays),
+    groupId: selectedGroup,
+  });
 
   if (loading) {
     return (
@@ -95,6 +66,14 @@ export function GroupAnalytics() {
             </Card>
           ))}
         </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="text-center py-8">
+        <p className="text-red-600">Error loading data: {error.message}</p>
       </div>
     );
   }

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState } from "react";
 import {
   BarChart,
   Bar,
@@ -25,39 +25,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Calendar, TrendingUp, Users, MousePointer } from "lucide-react";
-
-interface Agent {
-  id: string;
-  name: string;
-  phoneNumber: string;
-  isActive: boolean;
-  weight: number;
-  createdAt: string;
-  _count?: {
-    clicks: number;
-  };
-}
-
-interface AnalyticsData {
-  agentStats: Array<{
-    agentId: string;
-    agentName: string;
-    totalClicks: number;
-    lastClick: string | null;
-  }>;
-  timeStats: Array<{
-    date: string;
-    clicks: number;
-  }>;
-  hourlyStats: Array<{
-    hour: number;
-    clicks: number;
-  }>;
-  totalClicks: number;
-  clicksToday: number;
-  avgClicksPerDay: number;
-  peakHour: number;
-}
+import { useAnalytics, useAgents } from "./use-analytics";
 
 const COLORS = [
   "#000000",
@@ -69,40 +37,23 @@ const COLORS = [
 ];
 
 export function AnalyticsDashboard() {
-  const [analytics, setAnalytics] = useState<AnalyticsData | null>(null);
-  const [agents, setAgents] = useState<Agent[]>([]);
   const [timeRange, setTimeRange] = useState("7");
-  const [loading, setLoading] = useState(true);
 
-  const loadData = useCallback(async (): Promise<void> => {
-    try {
-      setLoading(true);
-      const [analyticsRes, agentsRes] = await Promise.all([
-        fetch(`/api/analytics?days=${timeRange}`),
-        fetch("/api/agents"),
-      ]);
+  // React Query hooks
+  const {
+    data: analytics,
+    isLoading: analyticsLoading,
+    error: analyticsError,
+  } = useAnalytics({
+    days: parseInt(timeRange),
+  });
+  const {
+    data: agents,
+    isLoading: agentsLoading,
+    error: agentsError,
+  } = useAgents();
 
-      if (analyticsRes.ok) {
-        const analyticsData = await analyticsRes.json();
-        setAnalytics(analyticsData);
-      }
-
-      if (agentsRes.ok) {
-        const agentsResponse = await agentsRes.json();
-        if (agentsResponse.success) {
-          setAgents(agentsResponse.data);
-        }
-      }
-    } catch (error) {
-      console.error("Error loading data:", error);
-    } finally {
-      setLoading(false);
-    }
-  }, [timeRange]);
-
-  useEffect(() => {
-    loadData();
-  }, [loadData]);
+  const loading = analyticsLoading || agentsLoading;
 
   if (loading) {
     return (
@@ -121,6 +72,16 @@ export function AnalyticsDashboard() {
             </Card>
           ))}
         </div>
+      </div>
+    );
+  }
+
+  if (analyticsError || agentsError) {
+    return (
+      <div className="text-center py-8">
+        <p className="text-red-600">
+          Error loading data: {analyticsError?.message || agentsError?.message}
+        </p>
       </div>
     );
   }
@@ -384,7 +345,7 @@ export function AnalyticsDashboard() {
               </thead>
               <tbody>
                 {analytics.agentStats.map((stat) => {
-                  const agent = agents.find((a) => a.id === stat.agentId);
+                  const agent = agents?.find((a) => a.id === stat.agentId);
                   return (
                     <tr key={stat.agentId} className="border-b border-gray-100">
                       <td className="py-2 text-black">{stat.agentName}</td>
@@ -401,7 +362,7 @@ export function AnalyticsDashboard() {
                           ? new Date(stat.lastClick).toLocaleDateString()
                           : "Never"}
                       </td>
-                      <td className="py-2 text-black">{agent?.weight || 1}</td>
+                      <td className="py-2 text-black">-</td>
                     </tr>
                   );
                 })}

@@ -21,10 +21,10 @@ interface Agent {
   };
 }
 
-interface RotationStrategy {
-  id: string;
-  strategy: string;
-}
+// interface RotationStrategy {
+//   id: string;
+//   strategy: string;
+// }
 
 const strategies = [
   {
@@ -42,7 +42,6 @@ const strategies = [
 ];
 
 export function RotationSettings() {
-  const [settings] = useState<RotationStrategy | null>(null);
   const [agents, setAgents] = useState<Agent[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);

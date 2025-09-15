@@ -16,107 +16,43 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
+import { useDashboardOverview } from "./use-dashboard";
+import { DashboardSkeleton } from "./dashboard-skeleton";
 
-interface Agent {
-  id: string;
-  name: string;
-  phoneNumber: string;
-  isActive: boolean;
-  weight: number;
-  userId: string;
-  createdAt: string;
-  updatedAt: string;
-  agentGroups?: {
-    group: {
-      id: string;
-      name: string;
-      slug: string;
-    };
-  }[];
-  _count?: {
-    clicks: number;
-  };
-}
-
-interface Group {
-  id: string;
-  name: string;
-  slug: string;
-  description: string | null;
-  isActive: boolean;
-  strategy: string;
-  userId: string;
-  createdAt: string;
-  updatedAt: string;
-  agentGroups?: {
-    agent: {
-      id: string;
-      name: string;
-      phoneNumber: string;
-    };
-  }[];
-  _count?: {
-    clicks: number;
-  };
-}
-
-interface RotationSettings {
-  id: string;
-  strategy: string;
-  userId: string;
-  createdAt: string;
-  updatedAt: string;
-}
+// Using types from @/types instead of local interfaces
 
 export function DashboardOverview() {
   const router = useRouter();
-  const [agents, setAgents] = useState<Agent[]>([]);
-  const [groups, setGroups] = useState<Group[]>([]);
-  const [rotationSettings, setRotationSettings] =
-    useState<RotationSettings | null>(null);
-  const [loading, setLoading] = useState(true);
   const [rotatorUrl, setRotatorUrl] = useState("");
 
+  // React Query hooks
+  const {
+    agents,
+    groups,
+    settings: rotationSettings,
+    isLoading: loading,
+    error,
+  } = useDashboardOverview();
+
   useEffect(() => {
-    loadData();
     setRotatorUrl(`${window.location.origin}/api/rotate`);
   }, []);
 
-  const loadData = async (): Promise<void> => {
-    try {
-      const [agentsRes, groupsRes, settingsRes] = await Promise.all([
-        fetch("/api/agents"),
-        fetch("/api/groups"),
-        fetch("/api/settings"),
-      ]);
-
-      if (agentsRes.ok) {
-        const agentsResponse = await agentsRes.json();
-        if (agentsResponse.success) {
-          setAgents(agentsResponse.data);
-        }
-      }
-
-      if (groupsRes.ok) {
-        const groupsResponse = await groupsRes.json();
-        if (groupsResponse.success) {
-          setGroups(groupsResponse.data);
-        }
-      }
-
-      if (settingsRes.ok) {
-        const settingsResponse = await settingsRes.json();
-        if (settingsResponse.success) {
-          setRotationSettings(settingsResponse.data);
-        }
-      }
-    } catch (error) {
-      console.error("Error loading data:", error);
-      toast.error("Failed to load data");
-    } finally {
-      setLoading(false);
-    }
-  };
+  // Show error state
+  if (error) {
+    return (
+      <div className="text-center py-8">
+        <p className="text-red-600">Error loading dashboard: {error.message}</p>
+        <Button
+          onClick={() => window.location.reload()}
+          className="mt-4"
+          variant="outline"
+        >
+          Retry
+        </Button>
+      </div>
+    );
+  }
 
   const copyToClipboard = async (text: string): Promise<void> => {
     try {
@@ -143,27 +79,7 @@ export function DashboardOverview() {
   }));
 
   if (loading) {
-    return (
-      <div className="space-y-6">
-        <div className="flex justify-between items-center">
-          <div>
-            <h1 className="text-3xl font-bold text-black mb-2">
-              WhatsApp Rotator Dashboard
-            </h1>
-            <p className="text-gray-600">
-              Smart contact distribution with groups for organized support teams
-            </p>
-          </div>
-        </div>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
-          {[...Array(5)].map((_, i) => (
-            <div key={i} className="border border-gray-200 rounded-lg p-6">
-              <div className="h-16 bg-gray-100 animate-pulse rounded"></div>
-            </div>
-          ))}
-        </div>
-      </div>
-    );
+    return <DashboardSkeleton />;
   }
 
   return (

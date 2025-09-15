@@ -16,7 +16,7 @@ export const metadata: Metadata = {
 };
 
 export default async function AgentsPage() {
-  const session = await requireAuth();
+  await requireAuth();
 
   return (
     <div className="min-h-screen bg-white text-black p-4 sm:p-6">
