@@ -1,63 +1,105 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { toggleAgentStatus } from "@/lib/db-utils";
+import { requireAuth } from "@/modules/auth/require-auth";
+import { UpdateAgentSchema } from "@/schemas";
 import { z } from "zod";
 import { ApiResponseType } from "@/types";
-
-const UpdateAgentSchema = z.object({
-  name: z.string().min(1, "Name is required"),
-  phoneNumber: z
-    .string()
-    .min(1, "Phone number is required")
-    .regex(/^\+\d+$/, "Phone number must start with + and contain only digits"),
-  weight: z.number().min(1).max(10),
-  isActive: z.boolean(),
-});
 
 export async function PUT(
   request: NextRequest,
   { params }: { params: Promise<{ agentId: string }> }
 ): Promise<NextResponse> {
   try {
+    const session = await requireAuth();
     const { agentId } = await params;
     const body = await request.json();
     const validatedData = UpdateAgentSchema.parse(body);
 
-    // Check if phone number already exists (excluding current agent)
+    // Verify that the agent belongs to the current user
     const existingAgent = await db.agent.findFirst({
       where: {
-        phoneNumber: validatedData.phoneNumber,
-        NOT: {
-          id: agentId,
-        },
+        id: agentId,
+        userId: session.user.id,
       },
     });
 
-    if (existingAgent) {
+    if (!existingAgent) {
       return NextResponse.json(
-        { error: "Phone number already exists" },
-        { status: 400 }
+        {
+          success: false,
+          error: "Agent not found or access denied",
+        },
+        { status: 404 }
       );
     }
 
+    // Check if phone number already exists (only if phoneNumber is being updated)
+    // Only check within the current user's agents
+    if (validatedData.phoneNumber !== undefined) {
+      const duplicateAgent = await db.agent.findFirst({
+        where: {
+          phoneNumber: validatedData.phoneNumber,
+          userId: session.user.id, // Only check within current user's agents
+          NOT: {
+            id: agentId,
+          },
+        },
+      });
+
+      if (duplicateAgent) {
+        return NextResponse.json(
+          {
+            success: false,
+            error: "Phone number already exists in your agents",
+          },
+          { status: 400 }
+        );
+      }
+    }
+
+    // Only update fields that are provided
+    const updateData: {
+      name?: string;
+      phoneNumber?: string;
+      weight?: number;
+      isActive?: boolean;
+    } = {};
+    if (validatedData.name !== undefined) updateData.name = validatedData.name;
+    if (validatedData.phoneNumber !== undefined)
+      updateData.phoneNumber = validatedData.phoneNumber;
+    if (validatedData.weight !== undefined)
+      updateData.weight = validatedData.weight;
+    if (validatedData.isActive !== undefined)
+      updateData.isActive = validatedData.isActive;
+
     const agent = await db.agent.update({
       where: { id: agentId },
-      data: validatedData,
+      data: updateData,
     });
 
-    return NextResponse.json(agent);
+    return NextResponse.json({
+      success: true,
+      data: agent,
+    });
   } catch (error) {
     console.error("Error updating agent:", error);
 
     if (error instanceof z.ZodError) {
       return NextResponse.json(
-        { error: error.issues[0].message },
+        {
+          success: false,
+          error: error.issues[0].message,
+        },
         { status: 400 }
       );
     }
 
     return NextResponse.json(
-      { error: "Failed to update agent" },
+      {
+        success: false,
+        error: "Failed to update agent",
+      },
       { status: 500 }
     );
   }

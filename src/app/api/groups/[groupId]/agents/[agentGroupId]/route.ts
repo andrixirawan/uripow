@@ -1,13 +1,32 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
+import { requireAuth } from "@/modules/auth/require-auth";
 
 export async function PUT(
   request: NextRequest,
   { params }: { params: Promise<{ groupId: string; agentGroupId: string }> }
 ) {
   try {
+    const session = await requireAuth();
     const { weight, isActive } = await request.json();
     const { agentGroupId } = await params;
+
+    // Verify that the agentGroup belongs to the current user
+    const existingAgentGroup = await db.agentGroup.findFirst({
+      where: {
+        id: agentGroupId,
+        group: {
+          userId: session.user.id,
+        },
+      },
+    });
+
+    if (!existingAgentGroup) {
+      return NextResponse.json(
+        { error: "Agent group not found or access denied" },
+        { status: 404 }
+      );
+    }
 
     const updateData: {
       weight?: number;
@@ -17,7 +36,7 @@ export async function PUT(
     if (weight !== undefined) updateData.weight = weight;
     if (isActive !== undefined) updateData.isActive = isActive;
 
-    const agentGroup = await db.agentGroup.update({
+    const updatedAgentGroup = await db.agentGroup.update({
       where: { id: agentGroupId },
       data: updateData,
       include: {
@@ -26,12 +45,12 @@ export async function PUT(
     });
 
     return NextResponse.json({
-      id: agentGroup.id,
-      agentId: agentGroup.agentId,
-      name: agentGroup.agent.name,
-      phoneNumber: agentGroup.agent.phoneNumber,
-      weight: agentGroup.weight,
-      isActive: agentGroup.isActive,
+      id: updatedAgentGroup.id,
+      agentId: updatedAgentGroup.agentId,
+      name: updatedAgentGroup.agent.name,
+      phoneNumber: updatedAgentGroup.agent.phoneNumber,
+      weight: updatedAgentGroup.weight,
+      isActive: updatedAgentGroup.isActive,
     });
   } catch (error) {
     console.error("Error updating agent in group:", error);

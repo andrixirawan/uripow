@@ -1,6 +1,15 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback } from "react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Badge } from "@/components/ui/badge";
 import {
   BarChart,
   Bar,
@@ -15,52 +24,23 @@ import {
   LineChart,
   Line,
 } from "recharts";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { Calendar, TrendingUp, Users, MousePointer } from "lucide-react";
+import { TrendingUp, Users, MousePointerClick, Activity } from "lucide-react";
 
-interface Agent {
-  id: string;
-  name: string;
-  phoneNumber: string;
-  isActive: boolean;
-  weight: number;
-  createdAt: string;
-  _count?: {
-    clicks: number;
-  };
-}
-
-interface AnalyticsData {
-  agentStats: Array<{
-    agentId: string;
-    agentName: string;
-    totalClicks: number;
-    lastClick: string | null;
-  }>;
-  timeStats: Array<{
-    date: string;
-    clicks: number;
-  }>;
-  hourlyStats: Array<{
-    hour: number;
-    clicks: number;
-  }>;
+interface GroupAnalytics {
   totalClicks: number;
-  clicksToday: number;
-  avgClicksPerDay: number;
-  peakHour: number;
-}
-
-interface AnalyticsDashboardProps {
-  agents: Agent[];
+  hourlyData: { hour: number; clicks: number }[];
+  dailyData: { date: string; clicks: number }[];
+  agentDistribution: { name: string; clicks: number }[];
+  groupDistribution: { name: string; clicks: number }[];
+  groupStats: {
+    id: string;
+    name: string;
+    slug: string;
+    isActive: boolean;
+    strategy: string;
+    clickCount: number;
+    agentCount: number;
+  }[];
 }
 
 const COLORS = [
@@ -70,27 +50,31 @@ const COLORS = [
   "#9CA3AF",
   "#D1D5DB",
   "#E5E7EB",
+  "#F3F4F6",
 ];
 
-export function AnalyticsDashboard({ agents }: AnalyticsDashboardProps) {
-  const [analytics, setAnalytics] = useState<AnalyticsData | null>(null);
-  const [timeRange, setTimeRange] = useState("7");
-  const [loading, setLoading] = useState(true);
+export function GroupAnalytics() {
+  const [analytics, setAnalytics] = useState<GroupAnalytics | null>(null);
+  const [selectedGroup, setSelectedGroup] = useState<string>("all");
+  const [selectedDays, setSelectedDays] = useState<string>("7");
+  const [loading, setLoading] = useState<boolean>(true);
 
   const loadAnalytics = useCallback(async (): Promise<void> => {
     try {
       setLoading(true);
-      const response = await fetch(`/api/analytics?days=${timeRange}`);
+      const response = await fetch(
+        `/api/analytics/groups?days=${selectedDays}&group=${selectedGroup}`
+      );
       if (response.ok) {
         const data = await response.json();
         setAnalytics(data);
       }
     } catch (error) {
-      console.error("Error loading analytics:", error);
+      console.error("Error loading group analytics:", error);
     } finally {
       setLoading(false);
     }
-  }, [timeRange]);
+  }, [selectedDays, selectedGroup]);
 
   useEffect(() => {
     loadAnalytics();
@@ -100,9 +84,7 @@ export function AnalyticsDashboard({ agents }: AnalyticsDashboardProps) {
     return (
       <div className="space-y-6">
         <div className="flex justify-between items-center">
-          <h2 className="text-xl font-semibold text-black">
-            Analytics Dashboard
-          </h2>
+          <h2 className="text-xl font-semibold text-black">Group Analytics</h2>
         </div>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
           {[...Array(4)].map((_, i) => (
@@ -120,41 +102,44 @@ export function AnalyticsDashboard({ agents }: AnalyticsDashboardProps) {
   if (!analytics) {
     return (
       <div className="text-center py-8">
-        <p className="text-gray-600">No analytics data available</p>
+        <p className="text-gray-600">No group analytics data available</p>
       </div>
     );
   }
 
-  const agentChartData = analytics.agentStats.map((stat) => ({
-    name: stat.agentName,
-    clicks: stat.totalClicks,
+  const hourlyChartData = analytics.hourlyData.map((item) => ({
+    hour: `${item.hour}:00`,
+    clicks: item.clicks,
   }));
 
-  const timeChartData = analytics.timeStats.map((stat) => ({
-    date: new Date(stat.date).toLocaleDateString(),
-    clicks: stat.clicks,
+  const dailyChartData = analytics.dailyData.map((item) => ({
+    date: new Date(item.date).toLocaleDateString(),
+    clicks: item.clicks,
   }));
 
-  const hourlyChartData = analytics.hourlyStats.map((stat) => ({
-    hour: `${stat.hour}:00`,
-    clicks: stat.clicks,
+  // const agentChartData = analytics.agentDistribution.map((item) => ({
+  //   name: item.name,
+  //   clicks: item.clicks,
+  // }));
+
+  const groupChartData = analytics.groupDistribution.map((item) => ({
+    name: item.name,
+    clicks: item.clicks,
   }));
 
   return (
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h2 className="text-xl font-semibold text-black">
-            Analytics Dashboard
-          </h2>
+          <h2 className="text-xl font-semibold text-black">Group Analytics</h2>
           <p className="text-gray-600">
-            Track your rotator performance and agent distribution
+            Track your group performance and distribution patterns
           </p>
         </div>
 
-        <div className="mt-4 sm:mt-0">
-          <Select value={timeRange} onValueChange={setTimeRange}>
-            <SelectTrigger className="w-[180px] border-gray-200 text-black">
+        <div className="mt-4 sm:mt-0 flex space-x-2">
+          <Select value={selectedDays} onValueChange={setSelectedDays}>
+            <SelectTrigger className="w-[140px] border-gray-200 text-black">
               <SelectValue />
             </SelectTrigger>
             <SelectContent className="bg-white border border-gray-200">
@@ -172,6 +157,26 @@ export function AnalyticsDashboard({ agents }: AnalyticsDashboardProps) {
               </SelectItem>
             </SelectContent>
           </Select>
+
+          <Select value={selectedGroup} onValueChange={setSelectedGroup}>
+            <SelectTrigger className="w-[180px] border-gray-200 text-black">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent className="bg-white border border-gray-200">
+              <SelectItem value="all" className="text-black">
+                All Groups
+              </SelectItem>
+              {analytics.groupStats.map((group) => (
+                <SelectItem
+                  key={group.id}
+                  value={group.id}
+                  className="text-black"
+                >
+                  {group.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
       </div>
 
@@ -186,7 +191,7 @@ export function AnalyticsDashboard({ agents }: AnalyticsDashboardProps) {
                   {analytics.totalClicks.toLocaleString()}
                 </p>
               </div>
-              <MousePointer className="h-8 w-8 text-blue-500" />
+              <MousePointerClick className="h-8 w-8 text-blue-500" />
             </div>
           </CardContent>
         </Card>
@@ -195,12 +200,12 @@ export function AnalyticsDashboard({ agents }: AnalyticsDashboardProps) {
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-gray-600">Clicks Today</p>
+                <p className="text-sm text-gray-600">Active Groups</p>
                 <p className="text-2xl font-bold text-black">
-                  {analytics.clicksToday}
+                  {analytics.groupStats.filter((g) => g.isActive).length}
                 </p>
               </div>
-              <Calendar className="h-8 w-8 text-green-500" />
+              <Users className="h-8 w-8 text-green-500" />
             </div>
           </CardContent>
         </Card>
@@ -209,12 +214,12 @@ export function AnalyticsDashboard({ agents }: AnalyticsDashboardProps) {
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-gray-600">Avg. per Day</p>
+                <p className="text-sm text-gray-600">Total Groups</p>
                 <p className="text-2xl font-bold text-black">
-                  {Math.round(analytics.avgClicksPerDay)}
+                  {analytics.groupStats.length}
                 </p>
               </div>
-              <TrendingUp className="h-8 w-8 text-purple-500" />
+              <Activity className="h-8 w-8 text-purple-500" />
             </div>
           </CardContent>
         </Card>
@@ -223,12 +228,16 @@ export function AnalyticsDashboard({ agents }: AnalyticsDashboardProps) {
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-gray-600">Peak Hour</p>
+                <p className="text-sm text-gray-600">Avg. per Group</p>
                 <p className="text-2xl font-bold text-black">
-                  {analytics.peakHour}:00
+                  {analytics.groupStats.length > 0
+                    ? Math.round(
+                        analytics.totalClicks / analytics.groupStats.length
+                      )
+                    : 0}
                 </p>
               </div>
-              <Users className="h-8 w-8 text-orange-500" />
+              <TrendingUp className="h-8 w-8 text-orange-500" />
             </div>
           </CardContent>
         </Card>
@@ -236,14 +245,14 @@ export function AnalyticsDashboard({ agents }: AnalyticsDashboardProps) {
 
       {/* Charts */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Agent Performance */}
+        {/* Group Performance */}
         <Card className="border border-gray-200">
           <CardHeader>
-            <CardTitle className="text-black">Clicks by Agent</CardTitle>
+            <CardTitle className="text-black">Clicks by Group</CardTitle>
           </CardHeader>
           <CardContent>
             <ResponsiveContainer width="100%" height={300}>
-              <BarChart data={agentChartData}>
+              <BarChart data={groupChartData}>
                 <CartesianGrid strokeDasharray="3 3" />
                 <XAxis dataKey="name" tick={{ fill: "#000" }} />
                 <YAxis tick={{ fill: "#000" }} />
@@ -260,16 +269,16 @@ export function AnalyticsDashboard({ agents }: AnalyticsDashboardProps) {
           </CardContent>
         </Card>
 
-        {/* Click Distribution */}
+        {/* Group Distribution */}
         <Card className="border border-gray-200">
           <CardHeader>
-            <CardTitle className="text-black">Click Distribution</CardTitle>
+            <CardTitle className="text-black">Group Distribution</CardTitle>
           </CardHeader>
           <CardContent>
             <ResponsiveContainer width="100%" height={300}>
               <PieChart>
                 <Pie
-                  data={agentChartData}
+                  data={groupChartData}
                   cx="50%"
                   cy="50%"
                   outerRadius={80}
@@ -279,7 +288,7 @@ export function AnalyticsDashboard({ agents }: AnalyticsDashboardProps) {
                     `${name}: ${(percent * 100).toFixed(0)}%`
                   }
                 >
-                  {agentChartData.map((entry, index) => (
+                  {groupChartData.map((entry, index) => (
                     <Cell
                       key={`cell-${index}`}
                       fill={COLORS[index % COLORS.length]}
@@ -308,7 +317,7 @@ export function AnalyticsDashboard({ agents }: AnalyticsDashboardProps) {
           </CardHeader>
           <CardContent>
             <ResponsiveContainer width="100%" height={300}>
-              <LineChart data={timeChartData}>
+              <LineChart data={dailyChartData}>
                 <CartesianGrid strokeDasharray="3 3" />
                 <XAxis dataKey="date" tick={{ fill: "#000" }} />
                 <YAxis tick={{ fill: "#000" }} />
@@ -355,11 +364,11 @@ export function AnalyticsDashboard({ agents }: AnalyticsDashboardProps) {
         </Card>
       </div>
 
-      {/* Agent Details Table */}
+      {/* Group Details Table */}
       <Card className="border border-gray-200">
         <CardHeader>
           <CardTitle className="text-black">
-            Agent Performance Details
+            Group Performance Details
           </CardTitle>
         </CardHeader>
         <CardContent>
@@ -367,36 +376,31 @@ export function AnalyticsDashboard({ agents }: AnalyticsDashboardProps) {
             <table className="w-full">
               <thead>
                 <tr className="border-b border-gray-200">
-                  <th className="text-left py-2 text-black">Agent</th>
+                  <th className="text-left py-2 text-black">Group</th>
                   <th className="text-left py-2 text-black">Status</th>
-                  <th className="text-left py-2 text-black">Total Clicks</th>
-                  <th className="text-left py-2 text-black">Last Click</th>
-                  <th className="text-left py-2 text-black">Weight</th>
+                  <th className="text-left py-2 text-black">Strategy</th>
+                  <th className="text-left py-2 text-black">Agents</th>
+                  <th className="text-left py-2 text-black">Clicks</th>
                 </tr>
               </thead>
               <tbody>
-                {analytics.agentStats.map((stat) => {
-                  const agent = agents.find((a) => a.id === stat.agentId);
-                  return (
-                    <tr key={stat.agentId} className="border-b border-gray-100">
-                      <td className="py-2 text-black">{stat.agentName}</td>
-                      <td className="py-2">
-                        <Badge
-                          variant={agent?.isActive ? "default" : "destructive"}
-                        >
-                          {agent?.isActive ? "Active" : "Inactive"}
-                        </Badge>
-                      </td>
-                      <td className="py-2 text-black">{stat.totalClicks}</td>
-                      <td className="py-2 text-black">
-                        {stat.lastClick
-                          ? new Date(stat.lastClick).toLocaleDateString()
-                          : "Never"}
-                      </td>
-                      <td className="py-2 text-black">{agent?.weight || 1}</td>
-                    </tr>
-                  );
-                })}
+                {analytics.groupStats.map((group) => (
+                  <tr key={group.id} className="border-b border-gray-100">
+                    <td className="py-2 text-black">{group.name}</td>
+                    <td className="py-2">
+                      <Badge
+                        variant={group.isActive ? "default" : "destructive"}
+                      >
+                        {group.isActive ? "Active" : "Inactive"}
+                      </Badge>
+                    </td>
+                    <td className="py-2 text-black">
+                      {group.strategy.replace("-", " ").toUpperCase()}
+                    </td>
+                    <td className="py-2 text-black">{group.agentCount}</td>
+                    <td className="py-2 text-black">{group.clickCount}</td>
+                  </tr>
+                ))}
               </tbody>
             </table>
           </div>

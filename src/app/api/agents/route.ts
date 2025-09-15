@@ -54,12 +54,13 @@ export async function POST(
       );
     }
 
-    const { name, phoneNumber, weight } = validationResult.data;
+    const { name, phoneNumber, weight, isActive } = validationResult.data;
 
     const agent = await createUserAgent({
       name,
       phoneNumber,
       weight,
+      isActive,
     });
 
     return NextResponse.json(
@@ -71,6 +72,17 @@ export async function POST(
     );
   } catch (error) {
     console.error("Error creating agent:", error);
+
+    // Handle phone number already exists error
+    if (
+      error instanceof Error &&
+      error.message.includes("Phone number already exists")
+    ) {
+      return NextResponse.json(
+        { success: false, error: error.message },
+        { status: 400 }
+      );
+    }
 
     // Handle unique constraint error
     if (error instanceof Error && error.message.includes("unique")) {

@@ -76,6 +76,18 @@ export async function getUserGroups(): Promise<GroupWithRelationsType[]> {
 export async function createUserAgent(data: CreateAgentType) {
   const session = await requireAuth();
 
+  // Check if phone number already exists for this user
+  const existingAgent = await db.agent.findFirst({
+    where: {
+      phoneNumber: data.phoneNumber,
+      userId: session.user.id,
+    },
+  });
+
+  if (existingAgent) {
+    throw new Error("Phone number already exists in your agents");
+  }
+
   return await db.agent.create({
     data: {
       ...data,

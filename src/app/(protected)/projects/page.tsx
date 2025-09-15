@@ -1,28 +1,28 @@
 import { Metadata } from "next";
 import { requireAuth } from "@/modules/auth/require-auth";
-import { DashboardOverview } from "./_components/dashboard-overview";
+import { GroupManager } from "./_components/group-manager";
 
 export const metadata: Metadata = {
-  title: "Dashboard | WhatsApp Rotator",
+  title: "Projects Management | WhatsApp Rotator",
   description:
-    "WhatsApp Rotator dashboard - Smart contact distribution with groups for organized support teams",
+    "Manage your WhatsApp projects and groups for organized contact distribution",
   keywords: [
     "WhatsApp",
-    "dashboard",
-    "rotator",
+    "projects",
+    "groups",
+    "management",
     "contact distribution",
-    "support teams",
-    "overview",
+    "organization",
   ],
 };
 
-export default async function DashboardPage() {
+export default async function ProjectsPage() {
   const session = await requireAuth();
 
   return (
     <div className="min-h-screen bg-white text-black p-4 sm:p-6">
       <div className="max-w-7xl mx-auto">
-        <DashboardOverview />
+        <GroupManager />
       </div>
     </div>
   );

@@ -65,8 +65,15 @@ export const UpdateAgentSchema = z.object({
   phoneNumber: z
     .string()
     .min(10, "Nomor telepon minimal 10 digit")
-    .max(15, "Nomor telepon maksimal 15 digit")
-    .regex(/^\+?[1-9]\d{1,14}$/, "Format nomor telepon tidak valid")
+    .max(13, "Nomor telepon maksimal 13 digit")
+    .regex(
+      /^[1-9]\d{9,12}$/,
+      "Format nomor telepon tidak valid (10-13 digit tanpa 0 atau +62)"
+    )
+    .refine(
+      (val) => !val.startsWith("62"),
+      "Nomor telepon tidak boleh dimulai dengan 62"
+    )
     .optional(),
   weight: z.number().int().min(1).max(100).optional(),
   isActive: z.boolean().optional(),
@@ -257,9 +264,17 @@ export const AgentFormSchema = z.object({
   phoneNumber: z
     .string()
     .min(10, "Nomor telepon minimal 10 digit")
-    .max(15, "Nomor telepon maksimal 15 digit")
-    .regex(/^\+?[1-9]\d{1,14}$/, "Format nomor telepon tidak valid"),
-  weight: z.coerce.number().int().min(1).max(100).default(1),
+    .max(13, "Nomor telepon maksimal 13 digit")
+    .regex(
+      /^[1-9]\d{9,12}$/,
+      "Format nomor telepon tidak valid (10-13 digit tanpa 0 atau +62)"
+    )
+    .refine(
+      (val) => !val.startsWith("62"),
+      "Nomor telepon tidak boleh dimulai dengan 62"
+    ),
+  weight: z.number().int().min(1).max(100),
+  isActive: z.boolean(),
 });
 
 export const GroupFormSchema = z.object({

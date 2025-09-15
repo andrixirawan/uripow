@@ -1,28 +1,27 @@
 import { Metadata } from "next";
 import { requireAuth } from "@/modules/auth/require-auth";
-import { DashboardOverview } from "./_components/dashboard-overview";
+import { AgentManager } from "./_components/agent-manager";
 
 export const metadata: Metadata = {
-  title: "Dashboard | WhatsApp Rotator",
+  title: "Agents Management | WhatsApp Rotator",
   description:
-    "WhatsApp Rotator dashboard - Smart contact distribution with groups for organized support teams",
+    "Manage your WhatsApp agents for contact distribution and rotation",
   keywords: [
     "WhatsApp",
-    "dashboard",
-    "rotator",
+    "agents",
+    "management",
     "contact distribution",
-    "support teams",
-    "overview",
+    "rotation",
   ],
 };
 
-export default async function DashboardPage() {
+export default async function AgentsPage() {
   const session = await requireAuth();
 
   return (
     <div className="min-h-screen bg-white text-black p-4 sm:p-6">
       <div className="max-w-7xl mx-auto">
-        <DashboardOverview />
+        <AgentManager />
       </div>
     </div>
   );

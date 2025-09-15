@@ -1,12 +1,29 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
+import { requireAuth } from "@/modules/auth/require-auth";
 
 export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ groupId: string }> }
 ) {
   try {
+    const session = await requireAuth();
     const { groupId } = await params;
+
+    // Verify that the group belongs to the current user
+    const group = await db.group.findFirst({
+      where: {
+        id: groupId,
+        userId: session.user.id,
+      },
+    });
+
+    if (!group) {
+      return NextResponse.json(
+        { error: "Group not found or access denied" },
+        { status: 404 }
+      );
+    }
 
     // Get all agents in this group
     const agentGroups = await db.agentGroup.findMany({
@@ -16,13 +33,14 @@ export async function GET(
       },
     });
 
-    // Get all available agents not in this group
+    // Get all available agents not in this group (only from current user)
     const agentsInGroup = agentGroups.map((ag) => ag.agentId);
     const availableAgents = await db.agent.findMany({
       where: {
         id: {
           notIn: agentsInGroup,
         },
+        userId: session.user.id, // Only get agents from current user
       },
     });
 
@@ -65,8 +83,39 @@ export async function POST(
   { params }: { params: Promise<{ groupId: string }> }
 ) {
   try {
+    const session = await requireAuth();
     const { agentId, weight = 1, isActive = true } = await request.json();
     const { groupId } = await params;
+
+    // Verify that the group belongs to the current user
+    const group = await db.group.findFirst({
+      where: {
+        id: groupId,
+        userId: session.user.id,
+      },
+    });
+
+    if (!group) {
+      return NextResponse.json(
+        { error: "Group not found or access denied" },
+        { status: 404 }
+      );
+    }
+
+    // Verify that the agent belongs to the current user
+    const agent = await db.agent.findFirst({
+      where: {
+        id: agentId,
+        userId: session.user.id,
+      },
+    });
+
+    if (!agent) {
+      return NextResponse.json(
+        { error: "Agent not found or access denied" },
+        { status: 404 }
+      );
+    }
 
     if (!agentId) {
       return NextResponse.json(
@@ -126,8 +175,24 @@ export async function DELETE(
   { params }: { params: Promise<{ groupId: string }> }
 ) {
   try {
+    const session = await requireAuth();
     const { agentId } = await request.json();
     const { groupId } = await params;
+
+    // Verify that the group belongs to the current user
+    const group = await db.group.findFirst({
+      where: {
+        id: groupId,
+        userId: session.user.id,
+      },
+    });
+
+    if (!group) {
+      return NextResponse.json(
+        { error: "Group not found or access denied" },
+        { status: 404 }
+      );
+    }
 
     if (!agentId) {
       return NextResponse.json(
