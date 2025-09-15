@@ -1,7 +1,15 @@
 "use client";
 
 import { useState } from "react";
-import { Edit2, Trash2, Power, PowerOff, Users, Copy } from "lucide-react";
+import {
+  Edit2,
+  Trash2,
+  Power,
+  PowerOff,
+  Users,
+  Copy,
+  ExternalLink,
+} from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -81,6 +89,11 @@ export function ProjectsList({
 
   const copyToClipboard = (text: string) => {
     navigator.clipboard.writeText(text);
+  };
+
+  const testRotator = (groupSlug: string) => {
+    const rotatorUrl = `${window.location.origin}/api/rotate/${groupSlug}`;
+    window.open(rotatorUrl, "_blank");
   };
 
   // Loading state
@@ -210,6 +223,16 @@ export function ProjectsList({
                 )}
 
                 <div className="flex justify-end space-x-2 pt-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => testRotator(group.slug)}
+                    disabled={!group.isActive}
+                    className="h-8 w-8 p-0"
+                    title="Test WA Rotator"
+                  >
+                    <ExternalLink className="h-4 w-4" />
+                  </Button>
                   <Button
                     variant="outline"
                     size="sm"

@@ -98,8 +98,12 @@ export const CreateGroupSchema = z.object({
     .string()
     .max(500, "Deskripsi maksimal 500 karakter")
     .optional(),
-  strategy: z.enum(["round-robin", "random"]).default("round-robin"),
+  strategy: z
+    .enum(["round-robin", "random", "weighted"])
+    .default("round-robin"),
   isActive: z.boolean().default(true),
+  selectedAgents: z.array(z.string()).optional(),
+  agentWeights: z.record(z.string(), z.number().min(1).max(10)).optional(),
 });
 
 export const UpdateGroupSchema = z.object({
@@ -121,8 +125,10 @@ export const UpdateGroupSchema = z.object({
     .string()
     .max(500, "Deskripsi maksimal 500 karakter")
     .optional(),
-  strategy: z.enum(["round-robin", "random"]).optional(),
+  strategy: z.enum(["round-robin", "random", "weighted"]).optional(),
   isActive: z.boolean().optional(),
+  selectedAgents: z.array(z.string()).optional(),
+  agentWeights: z.record(z.string(), z.number().min(1).max(10)).optional(),
 });
 
 export const GroupSchema = z.object({
@@ -277,11 +283,8 @@ export const GroupFormSchema = z.object({
       /^[a-z0-9-]+$/,
       "Slug hanya boleh mengandung huruf kecil, angka, dan tanda hubung"
     ),
-  description: z
-    .string()
-    .max(500, "Deskripsi maksimal 500 karakter")
-    .default(""),
-  strategy: z.enum(["round-robin", "random"]).default("round-robin"),
+  description: z.string().max(500, "Deskripsi maksimal 500 karakter"),
+  strategy: z.enum(["round-robin", "random", "weighted"]),
   isActive: z.boolean(),
 });
 

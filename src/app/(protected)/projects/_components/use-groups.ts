@@ -50,7 +50,10 @@ async function createGroup(data: {
   name: string;
   slug: string;
   description?: string;
-  strategy: "round-robin" | "random";
+  strategy: "round-robin" | "random" | "weighted";
+  isActive?: boolean;
+  selectedAgents?: string[];
+  agentWeights?: Record<string, number>;
 }): Promise<GroupWithRelationsType> {
   const response = await fetch("/api/groups", {
     method: "POST",

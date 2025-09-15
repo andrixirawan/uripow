@@ -39,10 +39,7 @@ export interface PaginationType {
   hasPrev: boolean;
 }
 
-export interface PaginatedResponseType<T> {
-  data: T[];
-  pagination: PaginationType;
-}
+// Removed duplicate - using the one below
 export type AgentGroupType = AgentGroup;
 export type ClickType = Click;
 export type RotationSettingsType = RotationSettings;
@@ -77,22 +74,34 @@ export type GroupWithRelationsType = GroupType & {
   _count: {
     clicks: number;
   };
+  // New rotation fields from Prisma schema
+  rotationSequence: string[];
+  currentIndex: number;
+  sequenceVersion: number;
+  lastSequenceUpdate: Date;
 };
 
 export type GroupWithAgentsType = GroupType & {
   agentGroups: (AgentGroupType & {
     agent: AgentType;
   })[];
+  // New rotation fields from Prisma schema
+  rotationSequence: string[];
+  currentIndex: number;
+  sequenceVersion: number;
+  lastSequenceUpdate: Date;
 };
 
 export type CreateGroupType = Pick<GroupType, "name" | "slug"> & {
   description?: string;
-  strategy?: string;
+  strategy?: RotationStrategyType;
 };
 
 export type UpdateGroupType = Partial<
   Pick<GroupType, "name" | "slug" | "description" | "strategy" | "isActive">
->;
+> & {
+  strategy?: RotationStrategyType;
+};
 
 // AgentGroup types
 export type CreateAgentGroupType = Pick<
@@ -172,9 +181,29 @@ export type GroupAnalyticsType = {
   recentClicks: ClickWithRelationsType[];
 };
 
+// New rotation analytics types
+export type RotationAnalyticsType = {
+  group: {
+    id: string;
+    name: string;
+    slug: string;
+    strategy: RotationStrategyType;
+    currentIndex: number | null;
+    sequenceVersion: number | null;
+    lastSequenceUpdate: Date | null;
+  };
+  sequenceStats: {
+    totalRotations: number;
+    agentDistribution: Record<string, number>;
+    fairnessScore: number;
+  } | null;
+  clickDistribution: Record<string, number>;
+  totalClicks: number;
+};
+
 // ===== ROTATION STRATEGY TYPES =====
 
-export type RotationStrategyType = "round-robin" | "random";
+export type RotationStrategyType = "round-robin" | "random" | "weighted";
 
 export type RotationResultType = {
   agent: AgentType;

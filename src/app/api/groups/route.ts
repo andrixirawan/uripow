@@ -66,8 +66,15 @@ export async function POST(
       );
     }
 
-    const { name, slug, description, strategy, isActive } =
-      validationResult.data;
+    const {
+      name,
+      slug,
+      description,
+      strategy,
+      isActive,
+      selectedAgents,
+      agentWeights,
+    } = validationResult.data;
 
     const group = await createUserGroup({
       name,
@@ -75,6 +82,8 @@ export async function POST(
       description,
       strategy,
       isActive,
+      selectedAgents,
+      agentWeights,
     });
 
     return NextResponse.json(

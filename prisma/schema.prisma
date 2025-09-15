@@ -116,6 +116,13 @@ model Group {
   isActive    Boolean  @default(true)
   strategy    String   @default("round-robin") // round-robin, random, weighted
   userId      String // Owner of this group
+  
+  // NEW FIELDS for optimized rotation
+  rotationSequence    String[] @default([]) // Pre-computed phone numbers sequence
+  currentIndex        Int      @default(0)  // Current position in sequence
+  sequenceVersion     Int      @default(1)  // Increment when agents change
+  lastSequenceUpdate  DateTime @default(now()) // When sequence was last updated
+  
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 

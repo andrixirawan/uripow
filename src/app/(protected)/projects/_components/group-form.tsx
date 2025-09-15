@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useCallback } from "react";
+import React, { useEffect, useCallback, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Button } from "@/components/ui/button";
@@ -22,9 +22,11 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
+import { Label } from "@/components/ui/label";
 import { useCreateGroup, useUpdateGroup } from "./use-groups";
 import { GroupFormSchema, type GroupFormSchemaType } from "@/schemas";
 import { GroupWithRelationsType } from "@/types";
+import { useAgents } from "@/app/(protected)/agents/_components/use-agents";
 
 interface GroupFormProps {
   editingGroup: GroupWithRelationsType | null;
@@ -39,6 +41,8 @@ interface FormSubmissionData {
   description?: string;
   strategy?: "round-robin" | "random";
   isActive?: boolean;
+  selectedAgents?: string[];
+  agentWeights?: Record<string, number>;
 }
 
 interface GroupFormRef {
@@ -48,6 +52,11 @@ interface GroupFormRef {
 
 export const GroupForm = React.forwardRef<GroupFormRef, GroupFormProps>(
   ({ editingGroup, groups, onSuccess, onCancel }, ref) => {
+    const [selectedAgents, setSelectedAgents] = useState<string[]>([]);
+    const [agentWeights, setAgentWeights] = useState<Record<string, number>>(
+      {}
+    );
+
     const form = useForm<GroupFormSchemaType>({
       resolver: zodResolver(GroupFormSchema),
       defaultValues: {
@@ -60,9 +69,15 @@ export const GroupForm = React.forwardRef<GroupFormRef, GroupFormProps>(
       mode: "onChange",
     });
 
-    // React Query mutations
+    // React Query hooks
     const createGroupMutation = useCreateGroup();
     const updateGroupMutation = useUpdateGroup();
+    const { data: agentsData, isLoading: agentsLoading } = useAgents({
+      page: 1,
+      limit: 100, // Get all agents for selection
+    });
+
+    const agents = agentsData?.agents || [];
 
     // Set form values untuk edit mode
     const setEditValues = useCallback(
@@ -74,6 +89,18 @@ export const GroupForm = React.forwardRef<GroupFormRef, GroupFormProps>(
           strategy: group.strategy as "round-robin" | "random",
           isActive: group.isActive,
         });
+
+        // Set selected agents from group's agentGroups
+        const groupAgentIds = group.agentGroups?.map((ag) => ag.agent.id) || [];
+        setSelectedAgents(groupAgentIds);
+
+        // Set agent weights from group's agentGroups
+        const weights: Record<string, number> = {};
+        group.agentGroups?.forEach((ag) => {
+          weights[ag.agent.id] = ag.weight || 1;
+        });
+        setAgentWeights(weights);
+
         form.clearErrors();
       },
       [form]
@@ -88,6 +115,8 @@ export const GroupForm = React.forwardRef<GroupFormRef, GroupFormProps>(
         strategy: "round-robin",
         isActive: true,
       });
+      setSelectedAgents([]);
+      setAgentWeights({}); // Clear agent weights on reset
       form.clearErrors();
     }, [form]);
 
@@ -133,6 +162,36 @@ export const GroupForm = React.forwardRef<GroupFormRef, GroupFormProps>(
       }
     };
 
+    // Handle agent selection
+    const handleAgentToggle = (agentId: string) => {
+      setSelectedAgents((prev) => {
+        if (prev.includes(agentId)) {
+          // Remove agent and its weight
+          setAgentWeights((weights) => {
+            const newWeights = { ...weights };
+            delete newWeights[agentId];
+            return newWeights;
+          });
+          return prev.filter((id) => id !== agentId);
+        } else {
+          // Add agent with default weight
+          setAgentWeights((weights) => ({
+            ...weights,
+            [agentId]: 1, // Default weight
+          }));
+          return [...prev, agentId];
+        }
+      });
+    };
+
+    // Handle weight change
+    const handleWeightChange = (agentId: string, weight: number) => {
+      setAgentWeights((prev) => ({
+        ...prev,
+        [agentId]: weight,
+      }));
+    };
+
     // Build data untuk dikirim ke API
     const buildSubmissionData = (
       data: GroupFormSchemaType
@@ -161,6 +220,18 @@ export const GroupForm = React.forwardRef<GroupFormRef, GroupFormProps>(
           submissionData.isActive = data.isActive;
         }
 
+        // Check if selected agents changed
+        const originalAgentIds =
+          editingGroup.agentGroups?.map((ag) => ag.agent.id) || [];
+        const agentsChanged =
+          JSON.stringify([...selectedAgents].sort()) !==
+          JSON.stringify([...originalAgentIds].sort());
+
+        if (agentsChanged) {
+          submissionData.selectedAgents = selectedAgents;
+          submissionData.agentWeights = agentWeights;
+        }
+
         return submissionData;
       } else {
         // Create mode: kirim semua field
@@ -170,6 +241,8 @@ export const GroupForm = React.forwardRef<GroupFormRef, GroupFormProps>(
           description: data.description || "",
           strategy: data.strategy,
           isActive: data.isActive,
+          selectedAgents: selectedAgents,
+          agentWeights: agentWeights, // Include agent weights for creation
         };
       }
     };
@@ -178,6 +251,8 @@ export const GroupForm = React.forwardRef<GroupFormRef, GroupFormProps>(
       form.clearErrors();
 
       try {
+        const dataToSend = buildSubmissionData(data);
+
         // Validasi duplikasi slug
         if (validateSlugDuplication(data.slug)) {
           form.setError("slug", {
@@ -189,8 +264,6 @@ export const GroupForm = React.forwardRef<GroupFormRef, GroupFormProps>(
           return;
         }
 
-        const dataToSend = buildSubmissionData(data);
-
         if (editingGroup) {
           // Update group
           await updateGroupMutation.mutateAsync({
@@ -199,12 +272,7 @@ export const GroupForm = React.forwardRef<GroupFormRef, GroupFormProps>(
           });
         } else {
           // Create group
-          await createGroupMutation.mutateAsync({
-            name: data.name,
-            slug: data.slug,
-            description: data.description || "",
-            strategy: data.strategy,
-          });
+          await createGroupMutation.mutateAsync(dataToSend);
         }
 
         onSuccess();
@@ -389,6 +457,7 @@ export const GroupForm = React.forwardRef<GroupFormRef, GroupFormProps>(
                   <SelectContent>
                     <SelectItem value="round-robin">Round Robin</SelectItem>
                     <SelectItem value="random">Random</SelectItem>
+                    <SelectItem value="weighted">Weighted</SelectItem>
                   </SelectContent>
                 </Select>
                 <FormMessage />
@@ -423,6 +492,102 @@ export const GroupForm = React.forwardRef<GroupFormRef, GroupFormProps>(
               </FormItem>
             )}
           />
+
+          {/* Agent Selection */}
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <h3 className="text-lg font-medium">Select Agents</h3>
+              <p className="text-sm text-gray-500">
+                {selectedAgents.length} agent
+                {selectedAgents.length !== 1 ? "s" : ""} selected
+              </p>
+            </div>
+
+            {agentsLoading ? (
+              <div className="space-y-2">
+                {[...Array(3)].map((_, i) => (
+                  <div
+                    key={i}
+                    className="h-12 bg-gray-100 animate-pulse rounded"
+                  ></div>
+                ))}
+              </div>
+            ) : agents.length > 0 ? (
+              <div className="max-h-60 overflow-y-auto border rounded-lg">
+                {agents
+                  .filter((agent) => agent.isActive) // Only show active agents
+                  .map((agent) => (
+                    <div
+                      key={agent.id}
+                      className="flex items-center space-x-3 p-3 border-b last:border-b-0 hover:bg-gray-50"
+                    >
+                      <input
+                        type="checkbox"
+                        id={`agent-${agent.id}`}
+                        checked={selectedAgents.includes(agent.id)}
+                        onChange={() => handleAgentToggle(agent.id)}
+                        className="h-4 w-4 text-black focus:ring-black border-gray-300 rounded"
+                      />
+                      <label
+                        htmlFor={`agent-${agent.id}`}
+                        className="flex-1 cursor-pointer"
+                      >
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <p className="font-medium text-black">
+                              {agent.name}
+                            </p>
+                            <p className="text-sm text-gray-500">
+                              +
+                              {agent.phoneNumber.startsWith("62")
+                                ? agent.phoneNumber
+                                : "62" + agent.phoneNumber}
+                            </p>
+                          </div>
+                          <div className="text-xs text-gray-400">
+                            {agent._count?.clicks || 0} clicks
+                          </div>
+                        </div>
+                      </label>
+
+                      {/* Weight Input - Only show if agent is selected */}
+                      {selectedAgents.includes(agent.id) && (
+                        <div className="flex items-center space-x-2">
+                          <Label
+                            htmlFor={`weight-${agent.id}`}
+                            className="text-xs text-gray-500"
+                          >
+                            Weight:
+                          </Label>
+                          <Input
+                            id={`weight-${agent.id}`}
+                            type="number"
+                            min="1"
+                            max="10"
+                            value={agentWeights[agent.id] || 1}
+                            onChange={(e) =>
+                              handleWeightChange(
+                                agent.id,
+                                parseInt(e.target.value) || 1
+                              )
+                            }
+                            className="w-16 h-8 text-sm"
+                            onClick={(e) => e.stopPropagation()}
+                          />
+                        </div>
+                      )}
+                    </div>
+                  ))}
+              </div>
+            ) : (
+              <div className="text-center py-8 border rounded-lg bg-gray-50">
+                <p className="text-gray-500">No active agents available</p>
+                <p className="text-xs text-gray-400 mt-1">
+                  Create some agents first before adding them to a project
+                </p>
+              </div>
+            )}
+          </div>
 
           <div className="flex justify-end space-x-2 pt-4">
             <Button

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { requireAuth } from "@/modules/auth/require-auth";
 import { toggleGroupStatus } from "@/lib/db-utils";
+import { UpdateGroupSchema } from "@/schemas";
 import { ApiResponseType } from "@/types";
 
 export async function PUT(
@@ -10,8 +11,20 @@ export async function PUT(
 ): Promise<NextResponse<ApiResponseType>> {
   try {
     const session = await requireAuth();
-    const { name, description, strategy, isActive } = await request.json();
     const { groupId } = await params;
+    const body = await request.json();
+
+    // Validate with UpdateGroupSchema
+    const validationResult = UpdateGroupSchema.safeParse(body);
+    if (!validationResult.success) {
+      return NextResponse.json(
+        { success: false, error: "Invalid input data" },
+        { status: 400 }
+      );
+    }
+
+    const { name, description, strategy, isActive, selectedAgents } =
+      validationResult.data;
 
     // Verify that the group belongs to the user
     const existingGroup = await db.group.findFirst({
@@ -46,6 +59,44 @@ export async function PUT(
     if (description !== undefined) updateData.description = description || null;
     if (strategy !== undefined) updateData.strategy = strategy;
     if (isActive !== undefined) updateData.isActive = isActive;
+
+    // Update agents if selectedAgents is provided
+    if (selectedAgents !== undefined) {
+      // Remove all existing agent relationships
+      await db.agentGroup.deleteMany({
+        where: { groupId },
+      });
+
+      // Add new agent relationships if any
+      if (selectedAgents.length > 0) {
+        // Validate that all agents belong to the user
+        const agents = await db.agent.findMany({
+          where: {
+            id: { in: selectedAgents },
+            userId: session.user.id,
+          },
+        });
+
+        if (agents.length !== selectedAgents.length) {
+          return NextResponse.json(
+            {
+              success: false,
+              error: "One or more agents do not belong to you",
+            },
+            { status: 400 }
+          );
+        }
+
+        // Create new relationships
+        await db.agentGroup.createMany({
+          data: selectedAgents.map((agentId) => ({
+            agentId,
+            groupId,
+            isActive: true,
+          })),
+        });
+      }
+    }
 
     const group = await db.group.update({
       where: { id: groupId },
