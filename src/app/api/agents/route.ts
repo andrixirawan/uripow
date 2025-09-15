@@ -54,12 +54,11 @@ export async function POST(
       );
     }
 
-    const { name, phoneNumber, weight, isActive } = validationResult.data;
+    const { name, phoneNumber, isActive } = validationResult.data;
 
     const agent = await createUserAgent({
       name,
       phoneNumber,
-      weight,
       isActive,
     });
 

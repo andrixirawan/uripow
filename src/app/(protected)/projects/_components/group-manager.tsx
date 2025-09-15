@@ -23,14 +23,7 @@ import {
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import {
-  Trash2,
-  Plus,
-  Users,
-  Copy,
-  Edit,
-  UserCheck,
-} from "lucide-react";
+import { Trash2, Plus, Users, Copy, Edit, UserCheck } from "lucide-react";
 import { toast } from "sonner";
 
 interface Group {
@@ -81,7 +74,6 @@ export function GroupManager() {
   const strategies = [
     { value: "round-robin", label: "Round Robin - Fair distribution" },
     { value: "random", label: "Random - Unpredictable distribution" },
-    { value: "weighted", label: "Weighted - Based on agent weights" },
   ];
 
   useEffect(() => {

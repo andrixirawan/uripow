@@ -51,8 +51,7 @@ export const CreateAgentSchema = z.object({
     .string()
     .min(10, "Nomor telepon minimal 10 digit")
     .max(15, "Nomor telepon maksimal 15 digit")
-    .regex(/^\+?[1-9]\d{1,14}$/, "Format nomor telepon tidak valid"),
-  weight: z.number().int().min(1).max(100).default(1),
+    .regex(/^\+?[1-9]\d{9,14}$/, "Format nomor telepon tidak valid"),
   isActive: z.boolean().default(true),
 });
 
@@ -65,17 +64,9 @@ export const UpdateAgentSchema = z.object({
   phoneNumber: z
     .string()
     .min(10, "Nomor telepon minimal 10 digit")
-    .max(13, "Nomor telepon maksimal 13 digit")
-    .regex(
-      /^[1-9]\d{9,12}$/,
-      "Format nomor telepon tidak valid (10-13 digit tanpa 0 atau +62)"
-    )
-    .refine(
-      (val) => !val.startsWith("62"),
-      "Nomor telepon tidak boleh dimulai dengan 62"
-    )
+    .max(15, "Nomor telepon maksimal 15 digit")
+    .regex(/^\+?[1-9]\d{9,14}$/, "Format nomor telepon tidak valid")
     .optional(),
-  weight: z.number().int().min(1).max(100).optional(),
   isActive: z.boolean().optional(),
 });
 
@@ -84,7 +75,6 @@ export const AgentSchema = z.object({
   name: z.string(),
   phoneNumber: z.string(),
   isActive: z.boolean(),
-  weight: z.number().int(),
   userId: z.string(),
   createdAt: z.date(),
   updatedAt: z.date(),
@@ -108,9 +98,7 @@ export const CreateGroupSchema = z.object({
     .string()
     .max(500, "Deskripsi maksimal 500 karakter")
     .optional(),
-  strategy: z
-    .enum(["round-robin", "random", "weighted"])
-    .default("round-robin"),
+  strategy: z.enum(["round-robin", "random"]).default("round-robin"),
   isActive: z.boolean().default(true),
 });
 
@@ -133,7 +121,7 @@ export const UpdateGroupSchema = z.object({
     .string()
     .max(500, "Deskripsi maksimal 500 karakter")
     .optional(),
-  strategy: z.enum(["round-robin", "random", "weighted"]).optional(),
+  strategy: z.enum(["round-robin", "random"]).optional(),
   isActive: z.boolean().optional(),
 });
 
@@ -273,7 +261,6 @@ export const AgentFormSchema = z.object({
       (val) => !val.startsWith("62"),
       "Nomor telepon tidak boleh dimulai dengan 62"
     ),
-  weight: z.number().int().min(1).max(100),
   isActive: z.boolean(),
 });
 
@@ -294,9 +281,7 @@ export const GroupFormSchema = z.object({
     .string()
     .max(500, "Deskripsi maksimal 500 karakter")
     .default(""),
-  strategy: z
-    .enum(["round-robin", "random", "weighted"])
-    .default("round-robin"),
+  strategy: z.enum(["round-robin", "random"]).default("round-robin"),
 });
 
 export const AgentGroupFormSchema = z.object({
@@ -375,11 +360,7 @@ export const DashboardStatsSchema = z.object({
 
 // ===== ROTATION SCHEMAS =====
 
-export const RotationStrategySchema = z.enum([
-  "round-robin",
-  "random",
-  "weighted",
-]);
+export const RotationStrategySchema = z.enum(["round-robin", "random"]);
 
 export const RotationResultSchema = z.object({
   agent: AgentSchema,

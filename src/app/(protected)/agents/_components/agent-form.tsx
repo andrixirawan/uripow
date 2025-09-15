@@ -22,7 +22,6 @@ interface Agent {
   name: string;
   phoneNumber: string;
   isActive: boolean;
-  weight: number;
   createdAt: string;
   _count?: {
     clicks: number;
@@ -39,7 +38,6 @@ interface AgentFormProps {
 interface FormSubmissionData {
   name?: string;
   phoneNumber?: string;
-  weight?: number;
   isActive?: boolean;
 }
 
@@ -55,7 +53,6 @@ export const AgentForm = React.forwardRef<AgentFormRef, AgentFormProps>(
       defaultValues: {
         name: "",
         phoneNumber: "",
-        weight: 1,
         isActive: true,
       },
       mode: "onChange",
@@ -72,7 +69,6 @@ export const AgentForm = React.forwardRef<AgentFormRef, AgentFormProps>(
         form.reset({
           name: agent.name,
           phoneNumber: displayPhone,
-          weight: agent.weight,
           isActive: agent.isActive,
         });
         form.clearErrors();
@@ -85,7 +81,6 @@ export const AgentForm = React.forwardRef<AgentFormRef, AgentFormProps>(
       form.reset({
         name: "",
         phoneNumber: "",
-        weight: 1,
         isActive: true,
       });
       form.clearErrors();
@@ -167,10 +162,6 @@ export const AgentForm = React.forwardRef<AgentFormRef, AgentFormProps>(
           );
         }
 
-        if (form.formState.dirtyFields.weight) {
-          submissionData.weight = data.weight;
-        }
-
         if (form.formState.dirtyFields.isActive) {
           submissionData.isActive = data.isActive;
         }
@@ -181,7 +172,6 @@ export const AgentForm = React.forwardRef<AgentFormRef, AgentFormProps>(
         return {
           name: data.name,
           phoneNumber: convertPhoneForDatabase(data.phoneNumber),
-          weight: data.weight,
           isActive: data.isActive,
         };
       }
@@ -376,39 +366,6 @@ export const AgentForm = React.forwardRef<AgentFormRef, AgentFormProps>(
                 </FormControl>
                 <p className="text-xs text-gray-500">
                   Masukkan nomor tanpa 0 atau +62 (contoh: 85713269167)
-                </p>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-
-          {/* Weight Field */}
-          <FormField
-            control={form.control}
-            name="weight"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel className="flex items-center gap-2">
-                  Weight
-                  {editingAgent && form.formState.dirtyFields.weight && (
-                    <span className="text-xs bg-orange-100 text-orange-800 px-2 py-1 rounded">
-                      Changed
-                    </span>
-                  )}
-                </FormLabel>
-                <FormControl>
-                  <Input
-                    type="number"
-                    min="1"
-                    max="10"
-                    {...field}
-                    onChange={(e) =>
-                      field.onChange(parseInt(e.target.value) || 1)
-                    }
-                  />
-                </FormControl>
-                <p className="text-sm text-gray-500">
-                  Weight lebih tinggi = distribusi lebih banyak (1-10)
                 </p>
                 <FormMessage />
               </FormItem>

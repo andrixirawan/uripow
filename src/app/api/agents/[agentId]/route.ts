@@ -62,14 +62,11 @@ export async function PUT(
     const updateData: {
       name?: string;
       phoneNumber?: string;
-      weight?: number;
       isActive?: boolean;
     } = {};
     if (validatedData.name !== undefined) updateData.name = validatedData.name;
     if (validatedData.phoneNumber !== undefined)
       updateData.phoneNumber = validatedData.phoneNumber;
-    if (validatedData.weight !== undefined)
-      updateData.weight = validatedData.weight;
     if (validatedData.isActive !== undefined)
       updateData.isActive = validatedData.isActive;
 

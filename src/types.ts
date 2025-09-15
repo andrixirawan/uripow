@@ -48,12 +48,10 @@ export type AgentWithGroupsType = AgentType & {
   })[];
 };
 
-export type CreateAgentType = Pick<AgentType, "name" | "phoneNumber"> & {
-  weight?: number;
-};
+export type CreateAgentType = Pick<AgentType, "name" | "phoneNumber">;
 
 export type UpdateAgentType = Partial<
-  Pick<AgentType, "name" | "phoneNumber" | "weight" | "isActive">
+  Pick<AgentType, "name" | "phoneNumber" | "isActive">
 >;
 
 // Group types
@@ -161,7 +159,7 @@ export type GroupAnalyticsType = {
 
 // ===== ROTATION STRATEGY TYPES =====
 
-export type RotationStrategyType = "round-robin" | "random" | "weighted";
+export type RotationStrategyType = "round-robin" | "random";
 
 export type RotationResultType = {
   agent: AgentType;
@@ -175,7 +173,6 @@ export type RotationResultType = {
 export type AgentFormType = {
   name: string;
   phoneNumber: string;
-  weight: number;
 };
 
 export type GroupFormType = {

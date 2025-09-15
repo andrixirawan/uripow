@@ -92,7 +92,6 @@ export async function createUserAgent(data: CreateAgentType) {
     data: {
       ...data,
       userId: session.user.id,
-      weight: data.weight || 1,
     },
   });
 }

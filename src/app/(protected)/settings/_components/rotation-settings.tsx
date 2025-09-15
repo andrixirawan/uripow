@@ -1,14 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import {
-  Settings,
-  Save,
-  RotateCcw,
-  Shuffle,
-  BarChart2,
-  AlertCircle,
-} from "lucide-react";
+import { Settings, Save, RotateCcw, Shuffle, AlertCircle } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
@@ -22,7 +15,6 @@ interface Agent {
   name: string;
   phoneNumber: string;
   isActive: boolean;
-  weight: number;
   createdAt: string;
   _count?: {
     clicks: number;
@@ -46,13 +38,6 @@ const strategies = [
     label: "Random",
     description: "Randomly assign contacts to any active agent",
     icon: Shuffle,
-  },
-  {
-    value: "weighted",
-    label: "Weighted",
-    description:
-      "Distribute based on agent weights (higher weight = more contacts)",
-    icon: BarChart2,
   },
 ];
 
@@ -265,12 +250,6 @@ export function RotationSettings() {
                           variant="outline"
                           className="text-xs text-black border-gray-200"
                         >
-                          Weight: {agent.weight}
-                        </Badge>
-                        <Badge
-                          variant="outline"
-                          className="text-xs text-black border-gray-200"
-                        >
                           {agent._count?.clicks || 0} clicks
                         </Badge>
                       </div>
@@ -313,19 +292,6 @@ export function RotationSettings() {
                   provides unpredictable distribution and can help with load
                   balancing in high-traffic scenarios. Good for general inquiry
                   handling.
-                </p>
-              </div>
-            )}
-            {selectedStrategy === "weighted" && (
-              <div className="p-4 bg-purple-50 rounded-lg">
-                <h4 className="font-medium text-purple-900 mb-2">
-                  Weighted Distribution
-                </h4>
-                <p className="text-sm text-purple-800">
-                  Contacts are distributed based on agent weights. Agents with
-                  higher weights receive more contacts. This is ideal when you
-                  have agents with different capacities or expertise levels.
-                  Adjust agent weights in the Agents section.
                 </p>
               </div>
             )}

@@ -89,7 +89,6 @@ model Agent {
   name        String
   phoneNumber String
   isActive    Boolean  @default(true)
-  weight      Int      @default(1)
   userId      String // Owner of this agent
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt

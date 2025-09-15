@@ -31,7 +31,6 @@ interface Agent {
   name: string;
   phoneNumber: string;
   isActive: boolean;
-  weight: number;
   createdAt: string;
   _count?: {
     clicks: number;
@@ -247,10 +246,6 @@ export function AgentManager() {
                 <div className="flex items-center space-x-2 text-sm text-gray-600">
                   <Phone className="h-4 w-4" />
                   <span>+{agent.phoneNumber}</span>
-                </div>
-                <div className="flex items-center justify-between text-sm">
-                  <span className="text-gray-600">Weight:</span>
-                  <span className="font-medium">{agent.weight}</span>
                 </div>
                 <div className="flex items-center justify-between text-sm">
                   <span className="text-gray-600">Clicks:</span>
