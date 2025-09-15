@@ -282,12 +282,12 @@ export const GroupFormSchema = z.object({
     .max(500, "Deskripsi maksimal 500 karakter")
     .default(""),
   strategy: z.enum(["round-robin", "random"]).default("round-robin"),
+  isActive: z.boolean(),
 });
 
 export const AgentGroupFormSchema = z.object({
   agentId: z.string().min(1, "Pilih agent"),
   groupId: z.string().min(1, "Pilih group"),
-  weight: z.coerce.number().int().min(1).max(100).default(1),
 });
 
 // ===== VALIDATION SCHEMAS =====

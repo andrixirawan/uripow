@@ -18,6 +18,7 @@
     "lib": "@/lib",
     "modules": "@/modules",
     "features": "@/features",
+    "providers": "@/providers",
     "hooks": "@/hooks"
   },
   "registries": {}

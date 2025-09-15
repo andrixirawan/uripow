@@ -13,16 +13,55 @@ import {
  */
 
 /**
- * Mendapatkan semua agent milik user yang sedang login
+ * Mendapatkan agents milik user yang sedang login dengan pagination
  */
-export async function getUserAgents(): Promise<AgentWithRelationsType[]> {
+export async function getUserAgents(options?: {
+  page?: number;
+  limit?: number;
+  search?: string;
+}): Promise<{
+  agents: AgentWithRelationsType[];
+  pagination: {
+    page: number;
+    limit: number;
+    total: number;
+    totalPages: number;
+    hasNext: boolean;
+    hasPrev: boolean;
+  };
+}> {
   const session = await requireAuth();
+  const { page = 1, limit = 10, search = "" } = options || {};
 
-  return await db.agent.findMany({
-    where: {
-      userId: session.user.id,
-      // Remove isActive filter to get all agents (active and inactive)
-    },
+  // Build where clause
+  const where: {
+    userId: string;
+    OR?: Array<{
+      name?: { contains: string; mode: "insensitive" };
+      phoneNumber?: { contains: string; mode: "insensitive" };
+    }>;
+  } = {
+    userId: session.user.id,
+  };
+
+  // Add search filter if provided
+  if (search) {
+    where.OR = [
+      { name: { contains: search, mode: "insensitive" } },
+      { phoneNumber: { contains: search, mode: "insensitive" } },
+    ];
+  }
+
+  // Get total count for pagination
+  const total = await db.agent.count({ where });
+
+  // Calculate pagination
+  const skip = (page - 1) * limit;
+  const totalPages = Math.ceil(total / limit);
+
+  // Get agents with pagination
+  const agents = await db.agent.findMany({
+    where,
     include: {
       agentGroups: {
         include: {
@@ -38,20 +77,75 @@ export async function getUserAgents(): Promise<AgentWithRelationsType[]> {
     orderBy: {
       createdAt: "desc",
     },
+    skip,
+    take: limit,
   });
+
+  return {
+    agents,
+    pagination: {
+      page,
+      limit,
+      total,
+      totalPages,
+      hasNext: page < totalPages,
+      hasPrev: page > 1,
+    },
+  };
 }
 
 /**
- * Mendapatkan semua group milik user yang sedang login
+ * Mendapatkan groups milik user yang sedang login dengan pagination
  */
-export async function getUserGroups(): Promise<GroupWithRelationsType[]> {
+export async function getUserGroups(options?: {
+  page?: number;
+  limit?: number;
+  search?: string;
+}): Promise<{
+  groups: GroupWithRelationsType[];
+  pagination: {
+    page: number;
+    limit: number;
+    total: number;
+    totalPages: number;
+    hasNext: boolean;
+    hasPrev: boolean;
+  };
+}> {
   const session = await requireAuth();
+  const { page = 1, limit = 10, search = "" } = options || {};
 
-  return await db.group.findMany({
-    where: {
-      userId: session.user.id,
-      // Remove isActive filter to get all groups (active and inactive)
-    },
+  // Build where clause
+  const where: {
+    userId: string;
+    OR?: Array<{
+      name?: { contains: string; mode: "insensitive" };
+      slug?: { contains: string; mode: "insensitive" };
+      description?: { contains: string; mode: "insensitive" };
+    }>;
+  } = {
+    userId: session.user.id,
+  };
+
+  // Add search filter if provided
+  if (search) {
+    where.OR = [
+      { name: { contains: search, mode: "insensitive" } },
+      { slug: { contains: search, mode: "insensitive" } },
+      { description: { contains: search, mode: "insensitive" } },
+    ];
+  }
+
+  // Get total count for pagination
+  const total = await db.group.count({ where });
+
+  // Calculate pagination
+  const skip = (page - 1) * limit;
+  const totalPages = Math.ceil(total / limit);
+
+  // Get groups with pagination
+  const groups = await db.group.findMany({
+    where,
     include: {
       agentGroups: {
         include: {
@@ -67,7 +161,21 @@ export async function getUserGroups(): Promise<GroupWithRelationsType[]> {
     orderBy: {
       createdAt: "desc",
     },
+    skip,
+    take: limit,
   });
+
+  return {
+    groups,
+    pagination: {
+      page,
+      limit,
+      total,
+      totalPages,
+      hasNext: page < totalPages,
+      hasPrev: page > 1,
+    },
+  };
 }
 
 /**

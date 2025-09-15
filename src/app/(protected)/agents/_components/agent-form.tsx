@@ -14,23 +14,13 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
-import { toast } from "sonner";
 import { AgentFormSchema, type AgentFormSchemaType } from "@/schemas";
-
-interface Agent {
-  id: string;
-  name: string;
-  phoneNumber: string;
-  isActive: boolean;
-  createdAt: string;
-  _count?: {
-    clicks: number;
-  };
-}
+import { useCreateAgent, useUpdateAgent } from "./use-agents";
+import { AgentWithRelationsType } from "@/types";
 
 interface AgentFormProps {
-  editingAgent: Agent | null;
-  agents: Agent[];
+  editingAgent: AgentWithRelationsType | null;
+  agents: AgentWithRelationsType[];
   onSuccess: () => void;
   onCancel: () => void;
 }
@@ -42,7 +32,7 @@ interface FormSubmissionData {
 }
 
 interface AgentFormRef {
-  setEditValues: (agent: Agent) => void;
+  setEditValues: (agent: AgentWithRelationsType) => void;
   resetForm: () => void;
 }
 
@@ -58,9 +48,13 @@ export const AgentForm = React.forwardRef<AgentFormRef, AgentFormProps>(
       mode: "onChange",
     });
 
+    // React Query mutations
+    const createAgentMutation = useCreateAgent();
+    const updateAgentMutation = useUpdateAgent();
+
     // Set form values untuk edit mode
     const setEditValues = useCallback(
-      (agent: Agent): void => {
+      (agent: AgentWithRelationsType): void => {
         let displayPhone = agent.phoneNumber;
         if (displayPhone.startsWith("62")) {
           displayPhone = displayPhone.slice(2);
@@ -192,66 +186,50 @@ export const AgentForm = React.forwardRef<AgentFormRef, AgentFormProps>(
           return;
         }
 
-        const url = editingAgent
-          ? `/api/agents/${editingAgent.id}`
-          : "/api/agents";
-        const method = editingAgent ? "PUT" : "POST";
-
         const dataToSend = buildSubmissionData(data);
 
-        const response = await fetch(url, {
-          method,
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify(dataToSend),
-        });
-
-        const result = await response.json();
-
-        if (result.success) {
-          toast.success(
-            editingAgent
-              ? "Agent berhasil diperbarui!"
-              : "Agent berhasil dibuat!"
-          );
-          onSuccess();
+        if (editingAgent) {
+          // Update agent
+          await updateAgentMutation.mutateAsync({
+            agentId: editingAgent.id,
+            data: dataToSend,
+          });
         } else {
-          const errorMessage = result.error || "Gagal menyimpan agent";
-
-          // Handle field-specific errors
-          if (result.details && Array.isArray(result.details)) {
-            result.details.forEach(
-              (detail: { field?: string; message?: string }) => {
-                if (detail.field && detail.message) {
-                  form.setError(detail.field as keyof AgentFormSchemaType, {
-                    type: "server",
-                    message: detail.message,
-                  });
-                }
-              }
-            );
-          } else {
-            // Set root error untuk general errors
-            form.setError("root", {
-              type: "server",
-              message: errorMessage,
-            });
-          }
-
-          toast.error(errorMessage);
+          // Create agent
+          await createAgentMutation.mutateAsync({
+            name: data.name,
+            phoneNumber: convertPhoneForDatabase(data.phoneNumber),
+            isActive: data.isActive,
+          });
         }
-      } catch (error) {
+
+        onSuccess();
+      } catch (error: unknown) {
         console.error("Error saving agent:", error);
-        const errorMessage =
-          "Gagal menyimpan agent. Periksa koneksi internet Anda.";
 
-        form.setError("root", {
-          type: "server",
-          message: errorMessage,
-        });
-
-        toast.error(errorMessage);
+        // Handle field-specific errors
+        if (
+          error &&
+          typeof error === "object" &&
+          "details" in error &&
+          Array.isArray(error.details)
+        ) {
+          error.details.forEach(
+            (detail: { field: string; message: string }) => {
+              if (detail.field && detail.message) {
+                form.setError(detail.field as keyof AgentFormSchemaType, {
+                  type: "server",
+                  message: detail.message,
+                });
+              }
+            }
+          );
+        } else {
+          form.setError("root", {
+            type: "server",
+            message: (error as Error)?.message || "Gagal menyimpan agent",
+          });
+        }
       }
     };
 
@@ -409,9 +387,16 @@ export const AgentForm = React.forwardRef<AgentFormRef, AgentFormProps>(
             <Button
               type="submit"
               className="bg-black text-white hover:bg-gray-800"
-              disabled={form.formState.isSubmitting || !form.formState.isValid}
+              disabled={
+                form.formState.isSubmitting ||
+                !form.formState.isValid ||
+                createAgentMutation.isPending ||
+                updateAgentMutation.isPending
+              }
             >
-              {form.formState.isSubmitting ? (
+              {form.formState.isSubmitting ||
+              createAgentMutation.isPending ||
+              updateAgentMutation.isPending ? (
                 <>
                   <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
                   {editingAgent ? "Memperbarui..." : "Membuat..."}

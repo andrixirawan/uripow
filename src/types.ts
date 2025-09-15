@@ -28,6 +28,21 @@ export type AccountWithUserType = AccountType & { user: UserType };
 // Base types dari Prisma
 export type AgentType = Agent;
 export type GroupType = Group;
+
+// Pagination types
+export interface PaginationType {
+  page: number;
+  limit: number;
+  total: number;
+  totalPages: number;
+  hasNext: boolean;
+  hasPrev: boolean;
+}
+
+export interface PaginatedResponseType<T> {
+  data: T[];
+  pagination: PaginationType;
+}
 export type AgentGroupType = AgentGroup;
 export type ClickType = Click;
 export type RotationSettingsType = RotationSettings;

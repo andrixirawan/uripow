@@ -2,13 +2,25 @@ import { NextRequest, NextResponse } from "next/server";
 import { getUserGroups, createUserGroup } from "@/lib/db-utils";
 import { CreateGroupSchema } from "@/schemas";
 import { ApiResponseType } from "@/types";
+import { z } from "zod";
 
 /**
- * GET /api/groups - Mendapatkan semua group milik user
+ * GET /api/groups - Mendapatkan groups milik user dengan pagination
  */
-export async function GET(): Promise<NextResponse<ApiResponseType>> {
+export async function GET(
+  request: NextRequest
+): Promise<NextResponse<ApiResponseType>> {
   try {
-    const groups = await getUserGroups();
+    const { searchParams } = new URL(request.url);
+    const page = parseInt(searchParams.get("page") || "1");
+    const limit = parseInt(searchParams.get("limit") || "10");
+    const search = searchParams.get("search") || "";
+
+    const groups = await getUserGroups({
+      page,
+      limit,
+      search,
+    });
 
     return NextResponse.json({
       success: true,
@@ -41,6 +53,9 @@ export async function POST(
         message: err.message,
       }));
 
+      console.log("Validation errors:", errors);
+      console.log("Request body:", body);
+
       return NextResponse.json(
         {
           success: false,
@@ -51,13 +66,15 @@ export async function POST(
       );
     }
 
-    const { name, slug, description, strategy } = validationResult.data;
+    const { name, slug, description, strategy, isActive } =
+      validationResult.data;
 
     const group = await createUserGroup({
       name,
       slug,
       description,
       strategy,
+      isActive,
     });
 
     return NextResponse.json(
@@ -75,6 +92,17 @@ export async function POST(
       return NextResponse.json(
         { success: false, error: "Nama atau slug sudah digunakan" },
         { status: 409 }
+      );
+    }
+
+    // Handle validation errors
+    if (error instanceof z.ZodError) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: error.issues[0].message,
+        },
+        { status: 400 }
       );
     }
 

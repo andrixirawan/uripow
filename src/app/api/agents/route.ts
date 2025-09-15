@@ -4,11 +4,22 @@ import { CreateAgentSchema } from "@/schemas";
 import { ApiResponseType } from "@/types";
 
 /**
- * GET /api/agents - Mendapatkan semua agent milik user
+ * GET /api/agents - Mendapatkan agents milik user dengan pagination
  */
-export async function GET(): Promise<NextResponse<ApiResponseType>> {
+export async function GET(
+  request: NextRequest
+): Promise<NextResponse<ApiResponseType>> {
   try {
-    const agents = await getUserAgents();
+    const { searchParams } = new URL(request.url);
+    const page = parseInt(searchParams.get("page") || "1");
+    const limit = parseInt(searchParams.get("limit") || "10");
+    const search = searchParams.get("search") || "";
+
+    const agents = await getUserAgents({
+      page,
+      limit,
+      search,
+    });
 
     return NextResponse.json({
       success: true,
